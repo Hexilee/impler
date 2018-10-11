@@ -8,17 +8,18 @@ import (
 
 const (
 	// <Annotation Val> first annotations. etc. @Get /item/{id}
-	GetAnn     = "@Get" // path
-	HeadAnn    = "@Head"
-	PostAnn    = "@Post"
-	PutAnn     = "@Put"
-	PatchAnn   = "@Patch"
-	DeleteAnn  = "@Delete"
-	ConnectAnn = "@Connect"
-	OptionsAnn = "@Options"
-	TraceAnn   = "@Trace"
-	BodyAnn    = "@Body" // json | xml | form | multipart; default json
-	BaseAnn    = "@Base"
+	GetAnn        = "@Get" // path
+	HeadAnn       = "@Head"
+	PostAnn       = "@Post"
+	PutAnn        = "@Put"
+	PatchAnn      = "@Patch"
+	DeleteAnn     = "@Delete"
+	ConnectAnn    = "@Connect"
+	OptionsAnn    = "@Options"
+	TraceAnn      = "@Trace"
+	BodyAnn       = "@Body"       // json | xml | form | multipart; default json
+	SingleBodyAnn = "@SingleBody" // json | xml | form | multipart; default json; only
+	BaseAnn       = "@Base"
 )
 
 const (
@@ -27,11 +28,10 @@ const (
 
 const (
 	// <Annotation(Key) Val> third annotations. etc. @Header(Content-Type) multipart/form
-	ParamAnn    = "@Param"
-	OnlyBodyAnn = "@OnlyBody" // json | xml
-	HeaderAnn   = "@Header"   // param type: string
-	CookieAnn   = "@Cookie"   // param type: string
-	FileAnn     = "@File"     // param type: string
+	ParamAnn  = "@Param"
+	HeaderAnn = "@Header" // param type: string
+	CookieAnn = "@Cookie" // param type: string
+	FileAnn   = "@File"   // param type: string
 )
 
 type (

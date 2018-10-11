@@ -124,13 +124,22 @@ func (method *Method) resolveMetadata() (err error) {
 		case BodyAnn:
 
 		case ParamAnn:
-		case OnlyBodyAnn:
+		case SingleBodyAnn:
 		case HeaderAnn:
 		case CookieAnn:
 		case FileAnn:
 		}
 		return
 	})
+	return
+}
+
+func (method *Method) TrySetBodyType(value string) (err error) {
+	if method.meta.requestType == 0 {
+
+	} else {
+		err = DuplicatedAnnotationError(BodyAnn + " || " + SingleBodyAnn)
+	}
 	return
 }
 
