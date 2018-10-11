@@ -31,13 +31,14 @@ type (
 		httpMethod   string
 		uriPattern   string
 		uriIds       []string
-		headerIds    []*ParamMeta
-		cookieIds    []*ParamMeta
+		headerVars   []*PatternMeta
+		cookieVars   []*PatternMeta
+		bodyVars     []*PatternMeta // left ids is bodyIds
 		totalIds     map[string]*ParamMeta
-		bodyIds      map[string]*ParamMeta // left ids is bodyIds
 		responseIds  []string
 		responseType BodyType
 		requestType  BodyType
+		OnlyBody     bool // json || xml
 	}
 
 	ParamMeta struct {
@@ -60,10 +61,10 @@ func NewMethod(srv *Service, rawMethod *types.Func) *Method {
 		meta: &MethodMeta{
 			idList:      make(IdList),
 			uriIds:      make([]string, 0),
-			headerIds:   make([]*ParamMeta, 0),
-			cookieIds:   make([]*ParamMeta, 0),
+			headerVars:  make([]*PatternMeta, 0),
+			cookieVars:  make([]*PatternMeta, 0),
 			totalIds:    make(map[string]*ParamMeta),
-			bodyIds:     make(map[string]*ParamMeta),
+			bodyVars:    make([]*PatternMeta, 0),
 			responseIds: make([]string, 0),
 		},
 	}
