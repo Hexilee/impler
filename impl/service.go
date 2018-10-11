@@ -5,13 +5,14 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"net/http"
 	"strings"
 )
 
 const (
 	TokenType = "type"
 	ZeroStr   = ""
-	LF = "\n"
+	LF        = "\n"
 )
 
 func NewService(name string, service *types.Interface) *Service {
@@ -19,6 +20,10 @@ func NewService(name string, service *types.Interface) *Service {
 		methods: make(map[token.Pos]*Method),
 		name:    name,
 		service: service,
+		meta: &ServiceMeta{
+			header:  make(http.Header),
+			cookies: make([]*http.Cookie, 0),
+		},
 	}
 }
 
@@ -28,6 +33,13 @@ type (
 		name        string
 		commentText string
 		service     *types.Interface
+		meta        *ServiceMeta
+	}
+
+	ServiceMeta struct {
+		baseUrl string
+		header  http.Header
+		cookies []*http.Cookie
 	}
 )
 
@@ -118,5 +130,26 @@ func (srv Service) String() string {
 }
 
 func (srv *Service) resolveMetadata() (err error) {
+	NewProcessor(srv.commentText).Scan(func(ann, key, value string) (err error) {
+		switch ann {
+		case BaseAnn:
+			if srv.meta.baseUrl != ZeroStr {
+				err = DuplicatedAnnotationError(BaseAnn)
+			}
+			srv.meta.baseUrl = value
+		case HeaderAnn:
+			srv.meta.header.Add(key, value)
+		case CookieAnn:
+			srv.meta.cookies = append(srv.meta.cookies, &http.Cookie{Name: key, Value: value})
+		}
+		return
+	})
+
+	for _, method := range srv.methods {
+		err = method.resolveMetadata()
+		if err != nil {
+			break
+		}
+	}
 	return
 }
