@@ -2,12 +2,20 @@ package impl
 
 import (
 	"go/types"
+	"log"
+	"net/http"
+	"net/url"
+	"regexp"
+	"strings"
 )
 
-//const (
-//	ReadName  = "Read"
-//	ErrorName = "Error"
-//)
+const (
+	IdRegexp = `\{[a-zA-Z_][0-9a-zA-Z_]*\}`
+)
+
+var (
+	IdRe = regexp.MustCompile(IdRegexp)
+)
 
 type (
 	Method struct {
@@ -95,16 +103,25 @@ func (method *Method) resolveMetadata() (err error) {
 	NewProcessor(method.commentText).Scan(func(ann, key, value string) (err error) {
 		switch ann {
 		case GetAnn:
-
+			err = method.TrySetMethod(http.MethodGet, value)
 		case HeadAnn:
+			err = method.TrySetMethod(http.MethodHead, value)
 		case PostAnn:
+			err = method.TrySetMethod(http.MethodPost, value)
 		case PutAnn:
+			err = method.TrySetMethod(http.MethodPut, value)
 		case PatchAnn:
+			err = method.TrySetMethod(http.MethodPatch, value)
 		case DeleteAnn:
+			err = method.TrySetMethod(http.MethodDelete, value)
 		case ConnectAnn:
+			err = method.TrySetMethod(http.MethodConnect, value)
 		case OptionsAnn:
+			err = method.TrySetMethod(http.MethodOptions, value)
 		case TraceAnn:
+			err = method.TrySetMethod(http.MethodTrace, value)
 		case BodyAnn:
+
 		case ParamAnn:
 		case OnlyBodyAnn:
 		case HeaderAnn:
@@ -117,38 +134,56 @@ func (method *Method) resolveMetadata() (err error) {
 }
 
 func (method *Method) TrySetMethod(httpMethod, uriPattern string) (err error) {
+	if method.meta.httpMethod != ZeroStr {
+		err = DuplicatedHttpMethodError(httpMethod)
+	}
 
+	if err == nil {
+		_, err = url.Parse(uriPattern)
+		if err == nil {
+			method.meta.httpMethod = httpMethod
+			patterns := IdRe.FindAllString(uriPattern, -1)
+			for _, pattern := range patterns {
+				id := getIdFromPattern(pattern)
+				if err = method.checkPath(id); err != nil {
+					break
+				}
+				method.meta.idList.deleteKey(id)
+				method.meta.uriIds = append(method.meta.uriIds, id)
+			}
+			if err == nil {
+				method.meta.uriPattern = IdRe.ReplaceAllStringFunc(uriPattern, method.findAndReplace)
+			}
+		}
+	}
 	return
 }
 
-//func isSliceOf(sliceType types.Type, kind types.BasicKind) (yes bool) {
-//	if slice, ok := sliceType.(*types.Slice); ok {
-//		yes = isBasic(slice.Elem(), kind)
-//	}
-//	return
-//}
-//
-//func isBasic(typ types.Type, kind types.BasicKind) (yes bool) {
-//	if basicType, ok := typ.(*types.Basic); ok {
-//		if basicType.Kind() == kind {
-//			yes = true
-//		}
-//	}
-//	return
-//}
-//
-//func isError(typ types.Type) (yes bool) {
-//	if typ, ok := typ.Underlying().(*types.Interface); ok {
-//		if typ.NumMethods() == 1 {
-//			method := typ.Method(0)
-//			if method.Name() == ErrorName {
-//				if signature, ok := method.Type().(*types.Signature); ok {
-//					params := signature.Params()
-//					results := signature.Results()
-//					if params
-//				}
-//			}
-//		}
-//	}
-//	return
-//}
+func getIdFromPattern(pattern string) string {
+	return strings.TrimRight(strings.TrimLeft(pattern, "{"), "}")
+}
+
+func (method *Method) findAndReplace(pattern string) (placeholder string) {
+	id := getIdFromPattern(pattern)
+	paramMeta := method.meta.totalIds[id]
+	switch paramMeta.typ {
+	case TypeString:
+		placeholder = "%s"
+	case TypeInt:
+		placeholder = "%d"
+	default:
+		log.Fatal(PathIdTypeMustBeIntOrStringError(id))
+	}
+	return
+}
+
+func (method *Method) checkPath(id string) (err error) {
+	if meta, exist := method.meta.totalIds[id]; exist {
+		if meta.typ != TypeString && meta.typ != TypeInt {
+			err = PathIdTypeMustBeIntOrStringError(id)
+		}
+	} else {
+		err = IdNotExistError(id)
+	}
+	return
+}

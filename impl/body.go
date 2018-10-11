@@ -4,7 +4,7 @@ const (
 	// only for response
 
 	// resp, error
-	HttpResponse = iota
+	HttpResponse = iota + 1
 
 	// req, error
 	HttpRequest
@@ -17,7 +17,7 @@ const (
 	// for request or response
 
 	// resp, statusCode, error
-	JSON = iota + 3
+	JSON = iota + 4
 
 	// resp, statusCode, error
 	XML
@@ -27,7 +27,7 @@ const (
 	// only for request
 
 	// resp, statusCode, error
-	Form = iota + 5
+	Form = iota + 6
 
 	// resp, statusCode, error
 	Multipart
