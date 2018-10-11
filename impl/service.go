@@ -50,11 +50,7 @@ func (srv *Service) InitComments(cmap ast.CommentMap) *Service {
 }
 
 func (srv *Service) SetMethod(rawMethod *types.Func) {
-	srv.methods[rawMethod.Pos()] = &Method{
-		Func:      rawMethod,
-		service:   srv,
-		signature: rawMethod.Type().(*types.Signature),
-	}
+	srv.methods[rawMethod.Pos()] = NewMethod(srv, rawMethod)
 }
 
 func (srv *Service) TrySetNode(node *ast.GenDecl) {

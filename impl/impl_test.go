@@ -1,8 +1,10 @@
 package impl
 
 import (
+	"fmt"
 	"testing"
 )
 
-func TestName(t *testing.T) {
+func TestGetQual(t *testing.T) {
+	fmt.Printf("%#v", getQual("*net/http.Response"))
 }

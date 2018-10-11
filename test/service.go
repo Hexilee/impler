@@ -9,6 +9,7 @@ import (
 
 /*
 @Base https://box.zjuqsc.com/item
+@Header(User-Agent) Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36
  */
 type Service interface {
 	/*
@@ -21,7 +22,7 @@ type Service interface {
 	@Body multipart
 	@Header(Content-Type) {contentType}
 	@Cookie(ga) {cookie}
-	@Param(path) FilePath
+	@FilePath(path)
 	 */
 	UploadItem(path string, contentType string, cookie string) (*http.Response, error)
 
@@ -29,6 +30,10 @@ type Service interface {
 	@Put /change/{id}
 	@Body json
 	@Cookie(ga) {cookie}
+	@Response json
 	 */
-	UpdateItem(id int, cookie string, data *time.Time) (*http.Response, error)
+	UpdateItem(id int, cookie string, data *time.Time) (result *UploadResult, statusCode int, err error)
+}
+
+type UploadResult struct {
 }

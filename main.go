@@ -49,7 +49,12 @@ func main() {
 	}
 
 	service := impl.NewService(serviceName, rawService).InitComments(cmap)
-	code := impl.Impl(service, GoPkg)
+	fmt.Println(service)
+	code, err := impl.Impl(service, GoPkg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	implFileName := fmt.Sprintf("%s_impl.go", strings.ToLower(serviceName))
 	ioutil.WriteFile(implFileName, []byte(code), 0644)
 }
