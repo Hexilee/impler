@@ -4,7 +4,7 @@ const (
 	// only for response
 
 	// resp, error
-	HttpResponse BodyType = iota
+	HttpResponse = iota
 
 	// req, error
 	HttpRequest
@@ -17,7 +17,7 @@ const (
 	// for request or response
 
 	// resp, statusCode, error
-	JSON BodyType = iota + 3
+	JSON = iota + 3
 
 	// resp, statusCode, error
 	XML
@@ -27,7 +27,7 @@ const (
 	// only for request
 
 	// resp, statusCode, error
-	Form BodyType = iota + 5
+	Form = iota + 5
 
 	// resp, statusCode, error
 	Multipart

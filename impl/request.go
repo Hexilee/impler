@@ -1,7 +1,7 @@
 package impl
 
 const (
-	TypeInt ParamType = iota
+	TypeInt = iota
 	TypeString
 	IOReader
 	TypeFile
