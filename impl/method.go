@@ -100,6 +100,7 @@ func NewParamMeta(param *types.Var) (meta *ParamMeta) {
 	return
 }
 
+// TODO: complete *Method.resolveMetadata
 func (method *Method) resolveMetadata() (err error) {
 	NewProcessor(method.commentText).Scan(func(ann, key, value string) (err error) {
 		switch ann {
@@ -131,9 +132,14 @@ func (method *Method) resolveMetadata() (err error) {
 		}
 		return
 	})
+
+	// TODO: resolve left idList
+	// TODO: check SingleBody and length of bodyVars
+	// TODO: check response type
 	return
 }
 
+// TODO: complete *Method.TrySetBodyType
 func (method *Method) TrySetBodyType(value string) (err error) {
 	if method.meta.requestType == ZeroStr {
 
