@@ -22,7 +22,7 @@ type Service interface {
 	@Body multipart
 	@Header(Content-Type) {contentType}
 	@Cookie(ga) {cookie}
-	@FilePath(path)
+	@File(avatar) {path}
 	 */
 	UploadItem(path string, contentType string, cookie string) (*http.Response, error)
 

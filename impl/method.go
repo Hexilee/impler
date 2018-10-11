@@ -47,3 +47,7 @@ func NewMethod(srv *Service, rawMethod *types.Func) *Method {
 		},
 	}
 }
+
+func (method *Method) resolveMetadata() (err error) {
+	return
+}

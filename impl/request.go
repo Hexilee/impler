@@ -1,10 +1,10 @@
 package impl
 
 const (
-	Int ParamType = iota
-	String
+	TypeInt ParamType = iota
+	TypeString
 	IOReader
-	File
+	TypeFile
 	Other
 )
 

@@ -116,3 +116,7 @@ func (srv Service) String() string {
 	fmt.Fprintln(str, "}")
 	return str.String()
 }
+
+func (srv *Service) resolveMetadata() (err error) {
+	return
+}

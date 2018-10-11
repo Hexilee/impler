@@ -20,9 +20,9 @@ const (
 
 const (
 	// types
-	TypeInt    = "int"
-	TypeString = "string"
-	TypeError  = "error"
+	IntToken    = "int"
+	StringToken = "string"
+	ErrorToken  = "error"
 )
 
 const (
@@ -81,11 +81,11 @@ DON'T EDIT IT!
 // *net/http.Response -> Op("*").Qual("net/http", "Response")
 func getQual(typ string) *Statement {
 	switch typ {
-	case TypeInt:
+	case IntToken:
 		return Int()
-	case TypeString:
+	case StringToken:
 		return String()
-	case TypeError:
+	case ErrorToken:
 		return Err()
 	default:
 		var statement *Statement
