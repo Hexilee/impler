@@ -4,35 +4,35 @@ const (
 	// only for response
 
 	// resp, error
-	HttpResponse = iota + 1
+	HttpResponse = "http_response"
 
 	// req, error
-	HttpRequest
+	HttpRequest = "http_request"
 
 	// resp, statusCode, error
-	HTML
+	HTML = "html"
 )
 
 const (
 	// for request or response
 
 	// resp, statusCode, error
-	JSON = iota + 4
+	JSON = "json"
 
 	// resp, statusCode, error
-	XML
+	XML = "xml"
 )
 
 const (
 	// only for request
 
 	// resp, statusCode, error
-	Form = iota + 6
+	Form = "form"
 
 	// resp, statusCode, error
-	Multipart
+	Multipart = "multipart"
 )
 
 type (
-	BodyType int
+	BodyType string
 )

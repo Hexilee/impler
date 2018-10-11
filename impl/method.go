@@ -135,7 +135,7 @@ func (method *Method) resolveMetadata() (err error) {
 }
 
 func (method *Method) TrySetBodyType(value string) (err error) {
-	if method.meta.requestType == 0 {
+	if method.meta.requestType == ZeroStr {
 
 	} else {
 		err = DuplicatedAnnotationError(BodyAnn + " || " + SingleBodyAnn)
