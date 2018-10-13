@@ -22,11 +22,14 @@ const (
 	// ids
 	IdResult     = "genResult"
 	IdRequest    = "genRequest"
+	IdResponse   = "genResponse"
+	IdClient     = "genClient"
 	IdStatusCode = "genStatusCode"
 	IdError      = "genErr"
 	IdUri        = "genUri"
 	IdUrl        = "genFinalUrl"
 	IdData       = "genData"
+	IdResultData = "genResultData"
 	IdBody       = "genBody"
 	IdDataMap    = "genDataMap"
 	IdPartWriter = "genPartWriter"
@@ -287,14 +290,33 @@ func (method *Method) addCookies(group *Group) {
 }
 
 func (method *Method) genResult(group *Group) {
-	switch method.resultType {
-	case HttpRequest:
+	if method.resultType == HttpRequest {
 		group.Id(IdResult).Op("=").Id(IdRequest)
-	case HttpResponse:
-
-	case JSON:
-	case XML:
+	} else {
+		group.Var().Id(IdResponse).Op("*").Qual(HttpPkg, "Response")
+		group.Id(IdClient).Op(":=").New(Qual(HttpPkg, "Client"))
+		group.List(Id(IdResponse), Id(IdError)).Op("=").Id(IdClient).Dot("Do").Call(Id(IdRequest))
+		group.If(Id(IdError).Op("!=").Nil()).Block(Return())
+		switch method.resultType {
+		case HttpResponse:
+			group.Id(IdResult).Op("=").Id(IdResponse)
+		case JSON:
+			unmarshalResult(group, EncodingJSON)
+		case XML:
+			unmarshalResult(group, EncodingXML)
+		}
 	}
+}
+
+func unmarshalResult(group *Group, pkg string) {
+	// TODO unmarshalResult, HTML
+	group.Var().Id(IdResultData).Index().Byte()
+	group.List(Id(IdResultData), Id(IdError)).Op("=").
+		Qual(Ioutil, "ReadAll").Call(Id(IdResponse).Dot("Body"))
+	group.Defer().Id(IdResponse).Dot("Body").Dot("Close").Call()
+	group.If(Id(IdError).Op("!=").Nil()).Block(Return())
+	group.Id(IdError).Op("=").Qual(pkg, "Unmarshal").Call(Id(IdResultData), Id(IdResult))
+	group.If(Id(IdError).Op("!=").Nil()).Block(Return())
 }
 
 func (method *Method) genFormBody(group *Group) {
