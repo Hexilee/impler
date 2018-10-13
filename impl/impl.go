@@ -24,6 +24,7 @@ const (
 	MultipartPkg = "mime/multipart"
 	Textproto    = "net/textproto"
 	OS           = "os"
+	StringsPkg   = "strings"
 )
 
 const (

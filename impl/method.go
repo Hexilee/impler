@@ -20,9 +20,11 @@ const (
 const (
 	// ids
 	IdResult     = "genResult"
+	IdRequest    = "genRequest"
 	IdStatusCode = "genStatusCode"
 	IdError      = "genErr"
 	IdUri        = "genUri"
+	IdUrl        = "genFinalUrl"
 	IdData       = "genData"
 	IdBody       = "genBody"
 	IdDataMap    = "genDataMap"
@@ -160,6 +162,8 @@ func (method *Method) resolveCode(file *File) {
 }
 
 func (method *Method) genBody(group *Group) {
+	group.Var().Id(IdBody).Qual(IO, "ReadWriter")
+	group.Var().Id(IdRequest).Op("*").Qual(HttpPkg, "Request")
 	if len(method.uri.ids) == 0 {
 		group.Id(IdUri).Op(":=").Lit(method.uri.pattern)
 	} else if method.uri.pattern == StringPlaceholder {
@@ -179,6 +183,20 @@ func (method *Method) genBody(group *Group) {
 			method.genMultipartBody(group)
 		}
 	}
+	method.genRequest(group)
+}
+
+func (method *Method) genRequest(group *Group) {
+	group.Id(IdUrl).Op(":=").Qual(StringsPkg, "TrimRight").Call(Lit(method.service.baseUrl), Lit("/")).
+		Op("+").
+		Lit("/").
+		Op("+").
+		Qual(StringsPkg, "TrimLeft").Call(Id(IdUri), Lit("/"))
+
+	group.List(Id(IdRequest), Id(IdError)).Op("=").
+		Qual(HttpPkg, "NewRequest").Call(Lit(method.httpMethod), Id(IdUrl), Id(IdBody))
+
+	group.If(Id(IdError).Op("!=").Nil()).Block(Return())
 	group.Return()
 }
 
@@ -198,7 +216,7 @@ func (method *Method) genFormBody(group *Group) {
 			}
 		}
 	}
-	group.Id(IdBody).Op(":=").Qual(Bytes, "NewBufferString").Call(Id(IdDataMap).Dot("Encode").Call())
+	group.Id(IdBody).Op("=").Qual(Bytes, "NewBufferString").Call(Id(IdDataMap).Dot("Encode").Call())
 }
 
 func (method *Method) getIOReaderWriter(bodyVar *BodyMeta) func(group *Group) {
@@ -238,7 +256,7 @@ func (method *Method) getFileWriter(bodyVar *BodyMeta) func(group *Group) {
 }
 
 func (method *Method) genMultipartBody(group *Group) {
-	group.Id(IdBody).Op(":=").Qual(Bytes, "NewBufferString").Call(Lit(""))
+	group.Id(IdBody).Op("=").Qual(Bytes, "NewBufferString").Call(Lit(""))
 	group.Id(IdBodyWriter).Op(":=").Qual(MultipartPkg, "NewWriter").Call(Id(IdBody))
 	for _, bodyVar := range method.bodyVars {
 		switch bodyVar.typ {
@@ -265,12 +283,12 @@ func (method *Method) genJSONOrXMLBody(group *Group, pkg string) {
 	if method.singleBody {
 		switch method.bodyVars[0].typ {
 		case IOReader:
-			group.Id(IdBody).Op(":=").Id(method.bodyVars[0].ids[0])
+			group.Id(IdBody).Op("=").Id(method.bodyVars[0].ids[0])
 		case Other:
 			group.Var().Id(IdData).Index().Byte()
 			group.List(Id(IdData), Id(IdError)).Op("=").Qual(pkg, "Marshal").Call(Id(method.bodyVars[0].ids[0]))
 			group.If(Id(IdError).Op("!=").Nil()).Block(Return())
-			group.Id(IdBody).Op(":=").Qual(Bytes, "NewBuffer").Call(Id(IdData))
+			group.Id(IdBody).Op("=").Qual(Bytes, "NewBuffer").Call(Id(IdData))
 		}
 	} else {
 		group.Var().Id(IdData).Index().Byte()
@@ -296,7 +314,7 @@ func (method *Method) genJSONOrXMLBody(group *Group, pkg string) {
 		}
 		group.List(Id(IdData), Id(IdError)).Op("=").Qual(pkg, "Marshal").Call(Id(IdDataMap))
 		group.If(Id(IdError).Op("!=").Nil()).Block(Return())
-		group.Id(IdBody).Op(":=").Qual(Bytes, "NewBuffer").Call(Id(IdData))
+		group.Id(IdBody).Op("=").Qual(Bytes, "NewBuffer").Call(Id(IdData))
 	}
 }
 
