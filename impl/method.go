@@ -4,6 +4,7 @@ import (
 	"errors"
 	. "github.com/dave/jennifer/jen"
 	"go/types"
+	"impler/headers"
 	"log"
 	"net/http"
 	"net/url"
@@ -189,8 +190,27 @@ func (method *Method) genBody(group *Group) {
 	// TODO: check @Header, cannot set contentType
 	method.addHeader(group)
 	method.addCookies(group)
+	method.setContentType(group)
 	method.genResult(group)
 	group.Return()
+}
+
+func (method *Method) setContentType(group *Group) {
+	if len(method.bodyVars) > 0 {
+		var contentType *Statement
+		switch method.requestType {
+		case JSON:
+			contentType = Lit(headers.MIMEApplicationJSONCharsetUTF8)
+		case XML:
+			contentType = Lit(headers.MIMEApplicationXMLCharsetUTF8)
+		case Form:
+			contentType = Lit(headers.MIMEApplicationForm)
+		case Multipart:
+			contentType = Id(IdBodyWriter).Dot("FormDataContentType").Call()
+		}
+		group.Id(IdRequest).Dot("Header").
+			Dot("Set").Call(Lit(headers.HeaderContentType), contentType)
+	}
 }
 
 func (method *Method) genRequest(group *Group) {
