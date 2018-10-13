@@ -32,6 +32,7 @@ const (
 	IdBodyWriter = "genBodyWriter"
 	IdFile       = "genFile"
 	IdFilePath   = "genFilePath"
+	IdHeader     = "genHeader"
 )
 
 var (
@@ -180,10 +181,16 @@ func (method *Method) genBody(group *Group) {
 		case Form:
 			method.genFormBody(group)
 		case Multipart:
+			group.Var().Id(IdBodyWriter).Op("*").Qual(MultipartPkg, "Writer")
 			method.genMultipartBody(group)
 		}
 	}
 	method.genRequest(group)
+	// TODO: check @Header, cannot set contentType
+	method.addHeader(group)
+	method.addCookies(group)
+	method.genResult(group)
+	group.Return()
 }
 
 func (method *Method) genRequest(group *Group) {
@@ -197,7 +204,73 @@ func (method *Method) genRequest(group *Group) {
 		Qual(HttpPkg, "NewRequest").Call(Lit(method.httpMethod), Id(IdUrl), Id(IdBody))
 
 	group.If(Id(IdError).Op("!=").Nil()).Block(Return())
-	group.Return()
+}
+
+func (method *Method) addHeader(group *Group) {
+	for key, values := range method.service.header {
+		for _, value := range values {
+			group.Id(IdRequest).Dot("Header").Dot("Add").Call(Lit(key), Lit(value))
+		}
+	}
+
+	for _, pattern := range method.headerVars {
+		if len(pattern.ids) == 0 {
+			group.Id(IdRequest).Dot("Header").Dot("Set").Call(Lit(pattern.key), Lit(pattern.pattern))
+		} else if pattern.pattern == StringPlaceholder {
+			group.Id(IdRequest).Dot("Header").Dot("Set").Call(Lit(pattern.key), Id(pattern.ids[0]))
+		} else {
+			group.Id(IdRequest).Dot("Header").
+				Dot("Set").Call(Lit(pattern.key),
+				Qual("fmt", "Sprintf").Call(Lit(pattern.pattern), List(genIds(pattern.ids)...)))
+		}
+	}
+}
+
+func (method *Method) addCookies(group *Group) {
+	for _, cookie := range method.service.cookies {
+		group.Id(IdRequest).Dot("AddCookie").Call(
+			Op("&").Qual(HttpPkg, "Cookie").Values(Dict{
+				Id("Name"):  Lit(cookie.Name),
+				Id("Value"): Lit(cookie.Value),
+			}),
+		)
+	}
+
+	for _, pattern := range method.cookieVars {
+		if len(pattern.ids) == 0 {
+			group.Id(IdRequest).Dot("AddCookie").Call(
+				Op("&").Qual(HttpPkg, "Cookie").Values(Dict{
+					Id("Name"):  Lit(pattern.key),
+					Id("Value"): Lit(pattern.pattern),
+				}),
+			)
+		} else if pattern.pattern == StringPlaceholder {
+			group.Id(IdRequest).Dot("AddCookie").Call(
+				Op("&").Qual(HttpPkg, "Cookie").Values(Dict{
+					Id("Name"):  Lit(pattern.key),
+					Id("Value"): Id(pattern.ids[0]),
+				}),
+			)
+		} else {
+			group.Id(IdRequest).Dot("AddCookie").Call(
+				Op("&").Qual(HttpPkg, "Cookie").Values(Dict{
+					Id("Name"):  Lit(pattern.key),
+					Id("Value"): Qual("fmt", "Sprintf").Call(Lit(pattern.pattern), List(genIds(pattern.ids)...)),
+				}),
+			)
+		}
+	}
+}
+
+func (method *Method) genResult(group *Group) {
+	switch method.resultType {
+	case HttpRequest:
+		group.Id(IdResult).Op("=").Id(IdRequest)
+	case HttpResponse:
+
+	case JSON:
+	case XML:
+	}
 }
 
 func (method *Method) genFormBody(group *Group) {
@@ -257,7 +330,7 @@ func (method *Method) getFileWriter(bodyVar *BodyMeta) func(group *Group) {
 
 func (method *Method) genMultipartBody(group *Group) {
 	group.Id(IdBody).Op("=").Qual(Bytes, "NewBufferString").Call(Lit(""))
-	group.Id(IdBodyWriter).Op(":=").Qual(MultipartPkg, "NewWriter").Call(Id(IdBody))
+	group.Id(IdBodyWriter).Op("=").Qual(MultipartPkg, "NewWriter").Call(Id(IdBody))
 	for _, bodyVar := range method.bodyVars {
 		switch bodyVar.typ {
 		case TypeInt:
@@ -393,11 +466,11 @@ func (method *Method) resolveResultType() (err error) {
 			!types.Identical(results.At(1).Type(), GetType(TypeErr)) {
 			err = ConflictAnnotationError(ResultAnn, results)
 		} else {
-			if types.Identical(results.At(0).Type(), GetType(TypeRequest)) {
+			if results.At(0).Type().String() == GetType(TypeRequest).String() {
 				method.resultType = HttpRequest
 			}
 
-			if types.Identical(results.At(0).Type(), GetType(TypeResponse)) {
+			if results.At(0).Type().String() == GetType(TypeResponse).String() {
 				method.resultType = HttpResponse
 			}
 		}
