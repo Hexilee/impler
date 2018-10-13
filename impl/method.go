@@ -301,22 +301,53 @@ func (method *Method) genResult(group *Group) {
 		case HttpResponse:
 			group.Id(IdResult).Op("=").Id(IdResponse)
 		case JSON:
-			unmarshalResult(group, EncodingJSON)
+			method.unmarshalResult(group, EncodingJSON)
 		case XML:
-			unmarshalResult(group, EncodingXML)
+			method.unmarshalResult(group, EncodingXML)
 		}
 	}
 }
 
-func unmarshalResult(group *Group, pkg string) {
+func (method *Method) unmarshalResult(group *Group, pkg string) {
 	// TODO unmarshalResult, HTML
 	group.Var().Id(IdResultData).Index().Byte()
 	group.List(Id(IdResultData), Id(IdError)).Op("=").
 		Qual(Ioutil, "ReadAll").Call(Id(IdResponse).Dot("Body"))
 	group.Defer().Id(IdResponse).Dot("Body").Dot("Close").Call()
 	group.If(Id(IdError).Op("!=").Nil()).Block(Return())
+	group.Id(IdResult).Op("=").Add(method.newObject(method.signature.Results().At(0).Type().String())).Values()
 	group.Id(IdError).Op("=").Qual(pkg, "Unmarshal").Call(Id(IdResultData), Id(IdResult))
 	group.If(Id(IdError).Op("!=").Nil()).Block(Return())
+}
+
+func (method *Method) newObject(typ string) Code {
+	log.Println(typ)
+	var statement *Statement
+	var qual *Statement
+	if strings.HasPrefix(typ, "*") {
+		statement = Op("&")
+		typ = typ[1:]
+	}
+
+	if !strings.Contains(typ, ".") {
+		qual = Id(typ)
+	} else {
+		var pkg string
+		dot := strings.LastIndex(typ, ".")
+		if dot != -1 {
+			pkg = typ[:dot]
+			typ = typ[dot+1:]
+		}
+		log.Printf("pkg: %s; typ: %s\n", pkg, typ)
+		qual = Qual(pkg, typ)
+	}
+
+	if statement == nil {
+		statement = qual
+	} else {
+		statement = statement.Add(qual)
+	}
+	return statement
 }
 
 func (method *Method) genFormBody(group *Group) {
