@@ -26,7 +26,7 @@ type (
 		commentText string
 		service     *Service
 		signature   *types.Signature
-		meta        *MethodMeta
+		*MethodMeta
 	}
 
 	MethodMeta struct {
@@ -66,7 +66,7 @@ func NewMethod(srv *Service, rawMethod *types.Func) *Method {
 		Func:      rawMethod,
 		service:   srv,
 		signature: rawMethod.Type().(*types.Signature),
-		meta: &MethodMeta{
+		MethodMeta: &MethodMeta{
 			idList:      make(IdList),
 			uriIds:      make([]string, 0),
 			headerVars:  make([]*PatternMeta, 0),
@@ -80,8 +80,8 @@ func NewMethod(srv *Service, rawMethod *types.Func) *Method {
 	params := method.signature.Params()
 	for i := 0; i < params.Len(); i++ {
 		param := params.At(i)
-		method.meta.idList.addKey(param.Name())
-		method.meta.totalIds[param.Name()] = NewParamMeta(param)
+		method.idList.addKey(param.Name())
+		method.totalIds[param.Name()] = NewParamMeta(param)
 	}
 
 	return method
@@ -139,11 +139,11 @@ func (method *Method) resolveMetadata() (err error) {
 		case HeaderAnn:
 			var meta *PatternMeta
 			meta, err = method.genPatternMeta(key, value)
-			method.meta.headerVars = append(method.meta.headerVars, meta)
+			method.headerVars = append(method.headerVars, meta)
 		case CookieAnn:
 			var meta *PatternMeta
 			meta, err = method.genPatternMeta(key, value)
-			method.meta.cookieVars = append(method.meta.cookieVars, meta)
+			method.cookieVars = append(method.cookieVars, meta)
 		case FileAnn:
 			err = method.TryAddParam(key, value, TypeFile)
 		}
@@ -160,9 +160,9 @@ func (method *Method) resolveMetadata() (err error) {
 	return
 }
 
-func (method *Method) resolveLeftIds() {
-	for id := range method.meta.idList {
-		if paramMeta, exist := method.meta.totalIds[id]; exist {
+func (meta *MethodMeta) resolveLeftIds() {
+	for id := range meta.idList {
+		if paramMeta, exist := meta.totalIds[id]; exist {
 			patternMeta := &PatternMeta{key: paramMeta.key, ids: []string{id}}
 			switch paramMeta.typ {
 			case TypeString:
@@ -171,7 +171,7 @@ func (method *Method) resolveLeftIds() {
 				patternMeta.pattern = IntPlaceholder
 			}
 			bodyMeta := &BodyMeta{patternMeta, paramMeta.typ}
-			method.meta.bodyVars = append(method.meta.bodyVars, bodyMeta)
+			meta.bodyVars = append(meta.bodyVars, bodyMeta)
 		} else {
 			log.Fatal(IdNotExistError(id))
 		}
@@ -180,44 +180,44 @@ func (method *Method) resolveLeftIds() {
 	return
 }
 
-func (method *Method) TryAddParam(key, pattern string, typ ParamType) (err error) {
-	meta, err := method.genPatternMeta(key, pattern)
+func (meta *MethodMeta) TryAddParam(key, pattern string, typ ParamType) (err error) {
+	patternMeta, err := meta.genPatternMeta(key, pattern)
 	if err == nil {
-		method.meta.bodyVars = append(method.meta.bodyVars, &BodyMeta{meta, typ})
+		meta.bodyVars = append(meta.bodyVars, &BodyMeta{patternMeta, typ})
 	}
 	return
 }
 
-func (method *Method) genPatternMeta(key, pattern string) (meta *PatternMeta, err error) {
+func (meta *MethodMeta) genPatternMeta(key, pattern string) (patternMeta *PatternMeta, err error) {
 	if key == ZeroStr {
 		err = errors.New(PatternKeyMustNotBeEmpty)
 	}
 
 	if err == nil {
-		meta = &PatternMeta{
+		patternMeta = &PatternMeta{
 			key: key,
 			ids: make([]string, 0),
 		}
 		patterns := IdRe.FindAllString(pattern, -1)
 		for _, pattern := range patterns {
 			id := getIdFromPattern(pattern)
-			if err = method.checkPattern(id); err != nil {
+			if err = meta.checkPattern(id); err != nil {
 				break
 			}
-			method.meta.idList.deleteKey(id)
-			meta.ids = append(meta.ids, id)
+			meta.idList.deleteKey(id)
+			patternMeta.ids = append(patternMeta.ids, id)
 		}
 		if err == nil {
-			meta.pattern = IdRe.ReplaceAllStringFunc(pattern, method.findAndReplace)
+			patternMeta.pattern = IdRe.ReplaceAllStringFunc(pattern, meta.findAndReplace)
 		}
 	}
 	return
 }
 
-func (method *Method) TrySetBodyType(value string) (err error) {
-	if method.meta.requestType == ZeroStr {
+func (meta *MethodMeta) TrySetBodyType(value string) (err error) {
+	if meta.requestType == ZeroStr {
 		if value == JSON || value == XML || value == Form || value == Multipart {
-			method.meta.requestType = BodyType(value)
+			meta.requestType = BodyType(value)
 		} else {
 			err = UnsupportedAnnotationValueError(BodyAnn, value)
 		}
@@ -227,11 +227,11 @@ func (method *Method) TrySetBodyType(value string) (err error) {
 	return
 }
 
-func (method *Method) TrySetSingleBodyType(value string) (err error) {
-	if method.meta.requestType == ZeroStr {
+func (meta *MethodMeta) TrySetSingleBodyType(value string) (err error) {
+	if meta.requestType == ZeroStr {
 		if value == JSON || value == XML {
-			method.meta.requestType = BodyType(value)
-			method.meta.singleBody = true
+			meta.requestType = BodyType(value)
+			meta.singleBody = true
 		} else {
 			err = UnsupportedAnnotationValueError(SingleBodyAnn, value)
 		}
@@ -241,26 +241,26 @@ func (method *Method) TrySetSingleBodyType(value string) (err error) {
 	return
 }
 
-func (method *Method) TrySetMethod(httpMethod, uriPattern string) (err error) {
-	if method.meta.httpMethod != ZeroStr {
+func (meta *MethodMeta) TrySetMethod(httpMethod, uriPattern string) (err error) {
+	if meta.httpMethod != ZeroStr {
 		err = DuplicatedHttpMethodError(httpMethod)
 	}
 
 	if err == nil {
 		_, err = url.Parse(uriPattern)
 		if err == nil {
-			method.meta.httpMethod = httpMethod
+			meta.httpMethod = httpMethod
 			patterns := IdRe.FindAllString(uriPattern, -1)
 			for _, pattern := range patterns {
 				id := getIdFromPattern(pattern)
-				if err = method.checkPattern(id); err != nil {
+				if err = meta.checkPattern(id); err != nil {
 					break
 				}
-				method.meta.idList.deleteKey(id)
-				method.meta.uriIds = append(method.meta.uriIds, id)
+				meta.idList.deleteKey(id)
+				meta.uriIds = append(meta.uriIds, id)
 			}
 			if err == nil {
-				method.meta.uriPattern = IdRe.ReplaceAllStringFunc(uriPattern, method.findAndReplace)
+				meta.uriPattern = IdRe.ReplaceAllStringFunc(uriPattern, meta.findAndReplace)
 			}
 		}
 	}
@@ -271,9 +271,9 @@ func getIdFromPattern(pattern string) string {
 	return strings.TrimRight(strings.TrimLeft(pattern, "{"), "}")
 }
 
-func (method *Method) findAndReplace(pattern string) (placeholder string) {
+func (meta *MethodMeta) findAndReplace(pattern string) (placeholder string) {
 	id := getIdFromPattern(pattern)
-	paramMeta := method.meta.totalIds[id]
+	paramMeta := meta.totalIds[id]
 	switch paramMeta.typ {
 	case TypeString:
 		placeholder = StringPlaceholder
@@ -285,9 +285,9 @@ func (method *Method) findAndReplace(pattern string) (placeholder string) {
 	return
 }
 
-func (method *Method) checkPattern(id string) (err error) {
-	if meta, exist := method.meta.totalIds[id]; exist {
-		if meta.typ != TypeString && meta.typ != TypeInt {
+func (meta *MethodMeta) checkPattern(id string) (err error) {
+	if paramMeta, exist := meta.totalIds[id]; exist {
+		if paramMeta.typ != TypeString && paramMeta.typ != TypeInt {
 			err = PatternIdTypeMustBeIntOrStringError(id)
 		}
 	} else {
