@@ -323,7 +323,6 @@ func (method *Method) unmarshalResult(group *Group, pkg string) {
 }
 
 func (method *Method) newObject(typ string) Code {
-	log.Println(typ)
 	var statement *Statement
 	var qual *Statement
 	if strings.HasPrefix(typ, "*") {
@@ -340,7 +339,6 @@ func (method *Method) newObject(typ string) Code {
 			pkg = typ[:dot]
 			typ = typ[dot+1:]
 		}
-		log.Printf("pkg: %s; typ: %s\n", pkg, typ)
 		qual = Qual(pkg, typ)
 	}
 
