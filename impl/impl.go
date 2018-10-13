@@ -20,6 +20,10 @@ const (
 	Bytes        = "bytes"
 	Ioutil       = "io/ioutil"
 	NetURL       = "net/url"
+	IO           = "io"
+	MultipartPkg = "mime/multipart"
+	Textproto    = "net/textproto"
+	OS           = "os"
 )
 
 const (

@@ -26,6 +26,10 @@ const (
 	IdData       = "genData"
 	IdBody       = "genBody"
 	IdDataMap    = "genDataMap"
+	IdPartWriter = "genPartWriter"
+	IdBodyWriter = "genBodyWriter"
+	IdFile       = "genFile"
+	IdFilePath   = "genFilePath"
 )
 
 var (
@@ -197,7 +201,65 @@ func (method *Method) genFormBody(group *Group) {
 	group.Id(IdBody).Op(":=").Qual(Bytes, "NewBufferString").Call(Id(IdDataMap).Dot("Encode").Call())
 }
 
-func (method *Method) genMultipartBody(group *Group) {}
+func (method *Method) getIOReaderWriter(bodyVar *BodyMeta) func(group *Group) {
+	return func(group *Group) {
+		group.Var().Id(IdPartWriter).Qual(IO, "Writer")
+		group.List(Id(IdPartWriter), Id(IdError)).Op("=").
+			Id(IdBodyWriter).Dot("CreateFormField").Call(Lit(bodyVar.key))
+		group.If(Id(IdError).Op("!=").Nil()).Block(Return())
+		group.List(Id("_"), Id(IdError)).Op("=").Qual(IO, "Copy").Call(Id(IdPartWriter), Id(bodyVar.ids[0]))
+		group.If(Id(IdError).Op("!=").Nil()).Block(Return())
+	}
+}
+
+func (method *Method) getFileWriter(bodyVar *BodyMeta) func(group *Group) {
+	return func(group *Group) {
+		group.Var().Id(IdPartWriter).Qual(IO, "Writer")
+		group.Var().Id(IdFile).Op("*").Qual(OS, "File")
+		group.Var().Id(IdFilePath).String()
+		if len(bodyVar.ids) == 0 {
+			group.Id(IdFilePath).Op("=").Lit(bodyVar.pattern)
+		} else if bodyVar.pattern == StringPlaceholder {
+			group.Id(IdFilePath).Op("=").Id(bodyVar.ids[0])
+		} else {
+			group.Id(IdFilePath).Op("=").Qual("fmt", "Sprintf").Call(Lit(bodyVar.pattern), List(genIds(bodyVar.ids)...))
+		}
+		group.List(Id(IdFile), Id(IdError)).Op("=").Qual(OS, "Open").Call(Id(IdFilePath))
+		group.Defer().Id(IdFile).Dot("Close").Call()
+		group.If(Id(IdError).Op("!=").Nil()).Block(Return())
+
+		group.List(Id(IdPartWriter), Id(IdError)).Op("=").
+			Id(IdBodyWriter).Dot("CreateFormFile").Call(Lit(bodyVar.key), Id(IdFilePath))
+		group.If(Id(IdError).Op("!=").Nil()).Block(Return())
+
+		group.List(Id("_"), Id(IdError)).Op("=").Qual(IO, "Copy").Call(Id(IdPartWriter), Id(IdFile))
+		group.If(Id(IdError).Op("!=").Nil()).Block(Return())
+	}
+}
+
+func (method *Method) genMultipartBody(group *Group) {
+	group.Id(IdBody).Op(":=").Qual(Bytes, "NewBufferString").Call(Lit(""))
+	group.Id(IdBodyWriter).Op(":=").Qual(MultipartPkg, "NewWriter").Call(Id(IdBody))
+	for _, bodyVar := range method.bodyVars {
+		switch bodyVar.typ {
+		case TypeInt:
+			fallthrough
+		case TypeString:
+			if len(bodyVar.ids) == 0 {
+				group.Id(IdBodyWriter).Dot("WriteField").Call(Lit(bodyVar.key), Lit(bodyVar.pattern))
+			} else if bodyVar.pattern == StringPlaceholder {
+				group.Id(IdBodyWriter).Dot("WriteField").Call(Lit(bodyVar.key), Id(bodyVar.ids[0]))
+			} else {
+				group.Id(IdBodyWriter).Dot("WriteField").Call(Lit(bodyVar.key), Qual("fmt", "Sprintf").Call(Lit(bodyVar.pattern), List(genIds(bodyVar.ids)...)))
+			}
+		case IOReader:
+			group.BlockFunc(method.getIOReaderWriter(bodyVar))
+		case TypeFile:
+			group.BlockFunc(method.getFileWriter(bodyVar))
+		}
+	}
+	group.Id(IdBodyWriter).Dot("Close").Call()
+}
 
 func (method *Method) genJSONOrXMLBody(group *Group, pkg string) {
 	if method.singleBody {

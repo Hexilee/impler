@@ -25,9 +25,9 @@ type Service interface {
 	@Body multipart
 	@Header(Content-Type) {contentType}
 	@Cookie(ga) {cookie}
-	@File(avatar) {path}
+	@File(avatar) /var/log/{path}
 	 */
-	UploadItem(path string, contentType string, cookie string) (*http.Response, error)
+	UploadItem(path string, contentType string, cookie string, video io.Reader) (*http.Response, error)
 
 	/*
 	@Put /change/{id}
