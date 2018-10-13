@@ -33,12 +33,12 @@ type (
 		uriIds       []string
 		headerVars   []*PatternMeta
 		cookieVars   []*PatternMeta
-		bodyVars     []*PatternMeta // left ids is bodyIds
+		bodyVars     []*BodyMeta
 		totalIds     map[string]*ParamMeta
 		responseIds  []string
 		responseType BodyType
 		requestType  BodyType
-		OnlyBody     bool // json || xml
+		singleBody   bool // json || xml
 	}
 
 	ParamMeta struct {
@@ -50,6 +50,11 @@ type (
 		key     string
 		pattern string
 		ids     []string
+	}
+
+	BodyMeta struct {
+		PatternMeta
+		typ ParamType
 	}
 )
 
@@ -64,7 +69,7 @@ func NewMethod(srv *Service, rawMethod *types.Func) *Method {
 			headerVars:  make([]*PatternMeta, 0),
 			cookieVars:  make([]*PatternMeta, 0),
 			totalIds:    make(map[string]*ParamMeta),
-			bodyVars:    make([]*PatternMeta, 0),
+			bodyVars:    make([]*BodyMeta, 0),
 			responseIds: make([]string, 0),
 		},
 	}
@@ -123,9 +128,10 @@ func (method *Method) resolveMetadata() (err error) {
 		case TraceAnn:
 			err = method.TrySetMethod(http.MethodTrace, value)
 		case BodyAnn:
-
-		case ParamAnn:
+			err = method.TrySetBodyType(value)
 		case SingleBodyAnn:
+			err = method.TrySetSingleBodyType(value)
+		case ParamAnn:
 		case HeaderAnn:
 		case CookieAnn:
 		case FileAnn:
@@ -139,12 +145,29 @@ func (method *Method) resolveMetadata() (err error) {
 	return
 }
 
-// TODO: complete *Method.TrySetBodyType
 func (method *Method) TrySetBodyType(value string) (err error) {
 	if method.meta.requestType == ZeroStr {
-
+		if value == JSON || value == XML || value == Form || value == Multipart {
+			method.meta.requestType = BodyType(value)
+		} else {
+			err = UnsupportedAnnotationValueError(BodyAnn, value)
+		}
 	} else {
-		err = DuplicatedAnnotationError(BodyAnn + " || " + SingleBodyAnn)
+		err = DuplicatedAnnotationError(BodyAnn + "/" + SingleBodyAnn)
+	}
+	return
+}
+
+func (method *Method) TrySetSingleBodyType(value string) (err error) {
+	if method.meta.requestType == ZeroStr {
+		if value == JSON || value == XML {
+			method.meta.requestType = BodyType(value)
+			method.meta.singleBody = true
+		} else {
+			err = UnsupportedAnnotationValueError(SingleBodyAnn, value)
+		}
+	} else {
+		err = DuplicatedAnnotationError(BodyAnn + "/" + SingleBodyAnn)
 	}
 	return
 }
