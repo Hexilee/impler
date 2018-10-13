@@ -166,20 +166,22 @@ func (method *Method) genBody(group *Group) {
 	if len(method.bodyVars) > 0 {
 		switch method.requestType {
 		case JSON:
-			method.genJSONBody(group)
+			method.genJSONOrXMLBody(group, EncodingJSON)
+		case XML:
+			method.genJSONOrXMLBody(group, EncodingXML)
 		}
 	}
 	group.Return()
 }
 
-func (method *Method) genJSONBody(group *Group) {
+func (method *Method) genJSONOrXMLBody(group *Group, pkg string) {
 	if method.singleBody {
 		switch method.bodyVars[0].typ {
 		case IOReader:
 			group.Id(IdBody).Op(":=").Id(method.bodyVars[0].ids[0])
 		case Other:
 			group.Var().Id(IdData).Index().Byte()
-			group.List(Id(IdData), Id(IdError)).Op("=").Qual(EncodingJSON, "Marshal").Call(Id(method.bodyVars[0].ids[0]))
+			group.List(Id(IdData), Id(IdError)).Op("=").Qual(pkg, "Marshal").Call(Id(method.bodyVars[0].ids[0]))
 			group.If(Id(IdError).Op("!=").Nil()).Block(Return())
 			group.Id(IdBody).Op(":=").Qual(Bytes, "NewBuffer").Call(Id(IdData))
 		}
@@ -205,7 +207,7 @@ func (method *Method) genJSONBody(group *Group) {
 				group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Id(bodyVar.ids[0])
 			}
 		}
-		group.List(Id(IdData), Id(IdError)).Op("=").Qual(EncodingJSON, "Marshal").Call(Id(IdDataMap))
+		group.List(Id(IdData), Id(IdError)).Op("=").Qual(pkg, "Marshal").Call(Id(IdDataMap))
 		group.If(Id(IdError).Op("!=").Nil()).Block(Return())
 		group.Id(IdBody).Op(":=").Qual(Bytes, "NewBuffer").Call(Id(IdData))
 	}
