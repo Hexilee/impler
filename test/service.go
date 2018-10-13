@@ -38,13 +38,13 @@ type Service interface {
 	UpdateItem(id int, cookie string, data *time.Time, apiKey string) (result *UploadResult, statusCode int, err error)
 
 	/*
-	@Get /stat/{id}
+	@Post /stat/{id}
 	@SingleBody json
 	 */
 	StatItem(id int, body *StatBody) (*http.Response, error)
 
 	/*
-	@Get /stat/{id}
+	@Post /stat/{id}
 	@SingleBody json
 	 */
 	StatByReader(id int, body io.Reader) (*http.Response, error)

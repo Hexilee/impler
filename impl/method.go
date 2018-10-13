@@ -356,7 +356,9 @@ func (method *Method) genJSONOrXMLBody(group *Group, pkg string) {
 	if method.singleBody {
 		switch method.bodyVars[0].typ {
 		case IOReader:
-			group.Id(IdBody).Op("=").Id(method.bodyVars[0].ids[0])
+			group.Id(IdBody).Op("=").Qual(Bytes, "NewBufferString").Call(Lit(""))
+			group.List(Id("_"), Id(IdError)).Op("=").Qual(IO, "Copy").Call(Id(IdBody), Id(method.bodyVars[0].ids[0]))
+			group.If(Id(IdError).Op("!=").Nil()).Block(Return())
 		case Other:
 			group.Var().Id(IdData).Index().Byte()
 			group.List(Id(IdData), Id(IdError)).Op("=").Qual(pkg, "Marshal").Call(Id(method.bodyVars[0].ids[0]))
