@@ -108,7 +108,6 @@ func NewParamMeta(param *types.Var) (meta *ParamMeta) {
 	return
 }
 
-// TODO: complete *Method.resolveMetadata
 func (method *Method) resolveMetadata() (err error) {
 	err = NewProcessor(method.commentText).Scan(func(ann, key, value string) (err error) {
 		switch ann {
@@ -157,10 +156,11 @@ func (method *Method) resolveMetadata() (err error) {
 		if method.singleBody && len(method.bodyVars) != 1 {
 			err = errors.New(SingleBodyWithMultiBodyVars)
 		}
-
 		if err == nil {
-			// check result type
-
+			err = method.resolveResultType()
+			if err == nil && method.requestType == ZeroStr {
+				method.requestType = JSON
+			}
 		}
 	}
 	return
