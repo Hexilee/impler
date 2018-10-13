@@ -158,6 +158,8 @@ func (method *Method) resolveCode(file *File) {
 func (method *Method) genBody(group *Group) {
 	if len(method.uri.ids) == 0 {
 		group.Id(IdUri).Op(":=").Lit(method.uri.pattern)
+	} else if method.uri.pattern == StringPlaceholder {
+		group.Id(IdUri).Op(":=").Id(method.uri.ids[0])
 	} else {
 		group.Id(IdUri).Op(":=").Qual("fmt", "Sprintf").Call(Lit(method.uri.pattern), List(genIds(method.uri.ids)...))
 	}
@@ -190,9 +192,11 @@ func (method *Method) genJSONBody(group *Group) {
 				fallthrough
 			case TypeString:
 				if len(bodyVar.ids) == 0 {
-					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Lit(method.uri.pattern)
+					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Lit(bodyVar.pattern)
+				} else if bodyVar.pattern == StringPlaceholder {
+					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Id(bodyVar.ids[0])
 				} else {
-					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Qual("fmt", "Sprintf").Call(Lit(method.uri.pattern), List(genIds(method.uri.ids)...))
+					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Qual("fmt", "Sprintf").Call(Lit(bodyVar.pattern), List(genIds(bodyVar.ids)...))
 				}
 			case IOReader:
 				group.List(Id(IdData), Id(IdError)).Op("=").Qual(IOIOutil, "ReadAll").Call(Id(bodyVar.ids[0]))
