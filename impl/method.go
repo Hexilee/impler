@@ -159,11 +159,11 @@ func (method *Method) resolveCode(file *File) {
 		Params(Id(service.self).Qual(service.pkg, service.implName)).
 		Id(method.Name()).
 		Params(paramList...).Params(resultList...).
-		BlockFunc(method.genBody)
+		BlockFunc(method.genMethodBody)
 	return
 }
 
-func (method *Method) genBody(group *Group) {
+func (method *Method) genMethodBody(group *Group) {
 	group.Var().Id(IdBody).Qual(IO, "ReadWriter")
 	group.Var().Id(IdRequest).Op("*").Qual(HttpPkg, "Request")
 	if len(method.uri.ids) == 0 {
@@ -173,6 +173,17 @@ func (method *Method) genBody(group *Group) {
 	} else {
 		group.Id(IdUri).Op(":=").Qual("fmt", "Sprintf").Call(Lit(method.uri.pattern), List(genIds(method.uri.ids)...))
 	}
+	method.genBody(group)
+	method.genRequest(group)
+	// TODO: check @Header, cannot set contentType
+	method.addHeader(group)
+	method.addCookies(group)
+	method.setContentType(group)
+	method.genResult(group)
+	group.Return()
+}
+
+func (method *Method) genBody(group *Group) {
 	if len(method.bodyVars) > 0 {
 		switch method.requestType {
 		case JSON:
@@ -186,13 +197,6 @@ func (method *Method) genBody(group *Group) {
 			method.genMultipartBody(group)
 		}
 	}
-	method.genRequest(group)
-	// TODO: check @Header, cannot set contentType
-	method.addHeader(group)
-	method.addCookies(group)
-	method.setContentType(group)
-	method.genResult(group)
-	group.Return()
 }
 
 func (method *Method) setContentType(group *Group) {
