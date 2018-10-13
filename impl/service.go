@@ -63,6 +63,16 @@ DON'T EDIT IT!
 				group.Id(srv.self).Dot(FieldHeader).Dot("Add").Call(Lit(key), Lit(value))
 			}
 		}
+
+		for _, cookie := range srv.cookies {
+			group.Id(srv.self).Dot(FieldCookies).Op("=").Append(
+				Id(srv.self).Dot(FieldCookies),
+				Op("&").Qual(HttpPkg, "Cookie").Values(Dict{
+					Id("Name"):  Lit(cookie.Name),
+					Id("Value"): Lit(cookie.Value),
+				}),
+			)
+		}
 		group.Return(Id(srv.self))
 
 	})
