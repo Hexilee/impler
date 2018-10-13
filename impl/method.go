@@ -304,12 +304,13 @@ func (method *Method) genResult(group *Group) {
 			method.unmarshalResult(group, EncodingJSON)
 		case XML:
 			method.unmarshalResult(group, EncodingXML)
+		case HTML:
+			method.unmarshalResult(group, UnHTMLPkg)
 		}
 	}
 }
 
 func (method *Method) unmarshalResult(group *Group, pkg string) {
-	// TODO unmarshalResult, HTML
 	group.Var().Id(IdResultData).Index().Byte()
 	group.List(Id(IdResultData), Id(IdError)).Op("=").
 		Qual(Ioutil, "ReadAll").Call(Id(IdResponse).Dot("Body"))

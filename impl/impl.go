@@ -25,6 +25,7 @@ const (
 	Textproto    = "net/textproto"
 	OS           = "os"
 	StringsPkg   = "strings"
+	UnHTMLPkg    = "github.com/Hexilee/unhtml"
 )
 
 const (
