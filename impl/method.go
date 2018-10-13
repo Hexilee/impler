@@ -161,41 +161,50 @@ func (method *Method) genBody(group *Group) {
 	} else {
 		group.Id(IdUri).Op(":=").Qual("fmt", "Sprintf").Call(Lit(method.uri.pattern), List(genIds(method.uri.ids)...))
 	}
-	switch method.requestType {
-	case JSON:
-		if method.singleBody {
-			switch method.bodyVars[0].typ {
-			case IOReader:
-				group.Id(IdBody).Op(":=").Id(method.bodyVars[0].ids[0])
-			case Other:
-				group.Var().Id(IdData).Index().Byte()
-				group.List(Id(IdData), Id(IdError)).Op("=").Qual(EncodingJSON, "Marshal").Call(Id(method.bodyVars[0].ids[0]))
-				group.If(Id(IdError).Op("!=").Nil()).Block()
-				group.Id(IdBody).Op(":=").Qual(Bytes, "NewBuffer").Call(Id(IdData))
-			}
-		} else {
-			group.Var().Id(IdData).Index().Byte()
-			group.Id(IdDataMap).Op(":=").Make(Map(String()).Interface())
-			for _, bodyVar := range method.bodyVars {
-				switch bodyVar.typ {
-				case TypeInt:
-					fallthrough
-				case TypeString:
-					if len(bodyVar.ids) == 0 {
-						group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Lit(method.uri.pattern)
-					} else {
-						group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Qual("fmt", "Sprintf").Call(Lit(method.uri.pattern), List(genIds(method.uri.ids)...))
-					}
-				case IOReader:
-					group.List(Id(IdData), Id(IdError)).Op("=").Qual(IOIOutil, "ReadAll").Call(Id(bodyVar.ids[0]))
-					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").String().Values(Id(IdData))
-				case Other:
-					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Id(bodyVar.ids[0])
-				}
-			}
+	if len(method.bodyVars) > 0 {
+		switch method.requestType {
+		case JSON:
+			method.genJSONBody(group)
 		}
 	}
 	group.Return()
+}
+
+func (method *Method) genJSONBody(group *Group) {
+	if method.singleBody {
+		switch method.bodyVars[0].typ {
+		case IOReader:
+			group.Id(IdBody).Op(":=").Id(method.bodyVars[0].ids[0])
+		case Other:
+			group.Var().Id(IdData).Index().Byte()
+			group.List(Id(IdData), Id(IdError)).Op("=").Qual(EncodingJSON, "Marshal").Call(Id(method.bodyVars[0].ids[0]))
+			group.If(Id(IdError).Op("!=").Nil()).Block(Return())
+			group.Id(IdBody).Op(":=").Qual(Bytes, "NewBuffer").Call(Id(IdData))
+		}
+	} else {
+		group.Var().Id(IdData).Index().Byte()
+		group.Id(IdDataMap).Op(":=").Make(Map(String()).Interface())
+		for _, bodyVar := range method.bodyVars {
+			switch bodyVar.typ {
+			case TypeInt:
+				fallthrough
+			case TypeString:
+				if len(bodyVar.ids) == 0 {
+					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Lit(method.uri.pattern)
+				} else {
+					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Qual("fmt", "Sprintf").Call(Lit(method.uri.pattern), List(genIds(method.uri.ids)...))
+				}
+			case IOReader:
+				group.List(Id(IdData), Id(IdError)).Op("=").Qual(IOIOutil, "ReadAll").Call(Id(bodyVar.ids[0]))
+				group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").String().Values(Id(IdData))
+			case Other:
+				group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Id(bodyVar.ids[0])
+			}
+		}
+		group.List(Id(IdData), Id(IdError)).Op("=").Qual(EncodingJSON, "Marshal").Call(Id(IdDataMap))
+		group.If(Id(IdError).Op("!=").Nil()).Block(Return())
+		group.Id(IdBody).Op(":=").Qual(Bytes, "NewBuffer").Call(Id(IdData))
+	}
 }
 
 func (method *Method) resolveMetadata() (err error) {
