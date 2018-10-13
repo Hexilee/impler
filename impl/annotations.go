@@ -19,6 +19,7 @@ const (
 	TraceAnn      = "@Trace"
 	BodyAnn       = "@Body"       // json | xml | form | multipart; default json
 	SingleBodyAnn = "@SingleBody" // json | xml | form | multipart; default json; only
+	ResultAnn     = "@Result"     // json | xml ; default json
 	BaseAnn       = "@Base"
 )
 

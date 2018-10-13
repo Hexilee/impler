@@ -11,6 +11,8 @@ const (
 	IdNotExist                     = "id does not exist"
 	PatternIdTypeMustBeIntOrString = "id in pattern must be int or string"
 	PatternKeyMustNotBeEmpty       = "key of pattern must not be empty"
+	SingleBodyWithMultiBodyVars    = "singleBody with multi body vars"
+	ConflictAnnotation             = "annotation conflict"
 	UnsupportedAnnotationValue     = "annotation value is unsupported"
 )
 
@@ -32,4 +34,8 @@ func PatternIdTypeMustBeIntOrStringError(id string) error {
 
 func UnsupportedAnnotationValueError(ann, value string) error {
 	return errors.New(UnsupportedAnnotationValue + fmt.Sprintf(": %s %s", ann, value))
+}
+
+func ConflictAnnotationError(ann string, value fmt.Stringer) error {
+	return errors.New(ConflictAnnotation + fmt.Sprintf("%s >-< %s", ann, value))
 }

@@ -30,18 +30,18 @@ type (
 	}
 
 	MethodMeta struct {
-		idList       IdList // delete when a id is used; to get left ids
-		httpMethod   string
-		uriPattern   string
-		uriIds       []string
-		headerVars   []*PatternMeta
-		cookieVars   []*PatternMeta
-		bodyVars     []*BodyMeta // left params as '@Param(id) {id}'
-		totalIds     map[string]*ParamMeta
-		responseIds  []string
-		responseType BodyType
-		requestType  BodyType
-		singleBody   bool // json || xml
+		idList      IdList // delete when a id is used; to get left ids
+		httpMethod  string
+		uriPattern  string
+		uriIds      []string
+		headerVars  []*PatternMeta
+		cookieVars  []*PatternMeta
+		bodyVars    []*BodyMeta // left params as '@Param(id) {id}'
+		totalIds    map[string]*ParamMeta
+		responseIds []string
+		resultType  BodyType
+		requestType BodyType
+		singleBody  bool // json || xml
 	}
 
 	ParamMeta struct {
@@ -134,6 +134,8 @@ func (method *Method) resolveMetadata() (err error) {
 			err = method.TrySetBodyType(value)
 		case SingleBodyAnn:
 			err = method.TrySetSingleBodyType(value)
+		case ResultAnn:
+			err = method.TrySetResultType(value)
 		case ParamAnn:
 			err = method.TryAddParam(key, value, TypeString)
 		case HeaderAnn:
@@ -151,12 +153,54 @@ func (method *Method) resolveMetadata() (err error) {
 	})
 
 	if err == nil {
+		method.resolveLeftIds()
+		if method.singleBody && len(method.bodyVars) != 1 {
+			err = errors.New(SingleBodyWithMultiBodyVars)
+		}
 
+		if err == nil {
+			// check result type
+
+		}
 	}
+	return
+}
 
-	method.resolveLeftIds()
-	// TODO: check SingleBody and length of bodyVars
-	// TODO: check response type
+func (method *Method) resolveResultType() (err error) {
+	results := method.signature.Results()
+	switch results.Len() {
+	case 2:
+		if method.resultType == JSON ||
+			method.resultType == XML ||
+			method.resultType == HTML ||
+			(!types.Identical(results.At(0).Type(), GetType(TypeRequest)) &&
+				!types.Identical(results.At(0).Type(), GetType(TypeRequest))) ||
+			!types.Identical(results.At(1).Type(), GetType(TypeErr)) {
+			err = ConflictAnnotationError(ResultAnn, results)
+		} else {
+			if types.Identical(results.At(0).Type(), GetType(TypeRequest)) {
+				method.resultType = HttpRequest
+			}
+
+			if types.Identical(results.At(0).Type(), GetType(TypeResponse)) {
+				method.resultType = HttpResponse
+			}
+		}
+	case 3:
+		if method.resultType != JSON &&
+			method.resultType != XML &&
+			method.resultType != HTML &&
+			method.resultType != ZeroStr ||
+			!types.Identical(results.At(1).Type(), GetType(TypeStatusCode)) ||
+			!types.Identical(results.At(2).Type(), GetType(TypeErr)) {
+			err = ConflictAnnotationError(ResultAnn, results)
+		}
+		if err == nil && method.resultType == ZeroStr {
+			method.resultType = JSON
+		}
+	default:
+		err = ConflictAnnotationError(ResultAnn, results)
+	}
 	return
 }
 
@@ -223,6 +267,19 @@ func (meta *MethodMeta) TrySetBodyType(value string) (err error) {
 		}
 	} else {
 		err = DuplicatedAnnotationError(BodyAnn + "/" + SingleBodyAnn)
+	}
+	return
+}
+
+func (meta *MethodMeta) TrySetResultType(value string) (err error) {
+	if meta.resultType == ZeroStr {
+		if value == JSON || value == XML || value == HTML {
+			meta.resultType = BodyType(value)
+		} else {
+			err = UnsupportedAnnotationValueError(ResultAnn, value)
+		}
+	} else {
+		err = DuplicatedAnnotationError(ResultAnn)
 	}
 	return
 }

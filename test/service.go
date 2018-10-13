@@ -30,7 +30,7 @@ type Service interface {
 	@Put /change/{id}
 	@Body json
 	@Cookie(ga) {cookie}
-	@Response json
+	@Result json
 	 */
 	UpdateItem(id int, cookie string, data *time.Time) (result *UploadResult, statusCode int, err error)
 }

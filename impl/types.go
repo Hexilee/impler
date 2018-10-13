@@ -15,16 +15,25 @@ package types
 
 import (
 	"io"
+	"net/http"
 )
 
 var (
-	IOReader io.Reader
+	IOReader 	io.Reader
+	Err      	error
+	StatusCode	int
+	Request		*http.Request
+	Response	*http.Response
 )
 `
 )
 
 const (
-	TypeIOReader = "IOReader"
+	TypeIOReader   = "IOReader"
+	TypeErr        = "Err"
+	TypeStatusCode = "StatusCode"
+	TypeRequest    = "Request"
+	TypeResponse   = "Response"
 )
 
 func GetType(name string) types.Type {
