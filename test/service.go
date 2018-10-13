@@ -48,6 +48,13 @@ type Service interface {
 	@SingleBody json
 	 */
 	StatByReader(id int, body io.Reader) (*http.Response, error)
+
+	/*
+	@Post /
+	@Body form
+	@Param(name) {firstName}.Lee
+	 */
+	PostInfo(id int, firstName string) (*http.Request, error)
 }
 
 type UploadResult struct {

@@ -18,7 +18,8 @@ const (
 	EncodingJSON = "encoding/json"
 	EncodingXML  = "encoding/xml"
 	Bytes        = "bytes"
-	IOIOutil     = "io/ioutil"
+	Ioutil       = "io/ioutil"
+	NetURL       = "net/url"
 )
 
 const (

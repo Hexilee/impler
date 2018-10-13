@@ -169,10 +169,35 @@ func (method *Method) genBody(group *Group) {
 			method.genJSONOrXMLBody(group, EncodingJSON)
 		case XML:
 			method.genJSONOrXMLBody(group, EncodingXML)
+		case Form:
+			method.genFormBody(group)
+		case Multipart:
+			method.genMultipartBody(group)
 		}
 	}
 	group.Return()
 }
+
+func (method *Method) genFormBody(group *Group) {
+	group.Id(IdDataMap).Op(":=").Make(Qual(NetURL, "Values"))
+	for _, bodyVar := range method.bodyVars {
+		switch bodyVar.typ {
+		case TypeInt:
+			fallthrough
+		case TypeString:
+			if len(bodyVar.ids) == 0 {
+				group.Id(IdDataMap).Dot("Add").Call(Lit(bodyVar.key), Lit(bodyVar.pattern))
+			} else if bodyVar.pattern == StringPlaceholder {
+				group.Id(IdDataMap).Dot("Add").Call(Lit(bodyVar.key), Id(bodyVar.ids[0]))
+			} else {
+				group.Id(IdDataMap).Dot("Add").Call(Lit(bodyVar.key), Qual("fmt", "Sprintf").Call(Lit(bodyVar.pattern), List(genIds(bodyVar.ids)...)))
+			}
+		}
+	}
+	group.Id(IdBody).Op(":=").Qual(Bytes, "NewBufferString").Call(Id(IdDataMap).Dot("Encode").Call())
+}
+
+func (method *Method) genMultipartBody(group *Group) {}
 
 func (method *Method) genJSONOrXMLBody(group *Group, pkg string) {
 	if method.singleBody {
@@ -201,7 +226,7 @@ func (method *Method) genJSONOrXMLBody(group *Group, pkg string) {
 					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Qual("fmt", "Sprintf").Call(Lit(bodyVar.pattern), List(genIds(bodyVar.ids)...))
 				}
 			case IOReader:
-				group.List(Id(IdData), Id(IdError)).Op("=").Qual(IOIOutil, "ReadAll").Call(Id(bodyVar.ids[0]))
+				group.List(Id(IdData), Id(IdError)).Op("=").Qual(Ioutil, "ReadAll").Call(Id(bodyVar.ids[0]))
 				group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").String().Values(Id(IdData))
 			case Other:
 				group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Id(bodyVar.ids[0])
