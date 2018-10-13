@@ -40,8 +40,7 @@ type (
 	MethodMeta struct {
 		idList      IdList // delete when a id is used; to get left ids
 		httpMethod  string
-		uriPattern  string
-		uriIds      []string
+		uri         *PatternMeta
 		headerVars  []*PatternMeta
 		cookieVars  []*PatternMeta
 		bodyVars    []*BodyMeta // left params as '@Param(id) {id}'
@@ -76,7 +75,6 @@ func NewMethod(srv *Service, rawMethod *types.Func) *Method {
 		signature: rawMethod.Type().(*types.Signature),
 		MethodMeta: &MethodMeta{
 			idList:      make(IdList),
-			uriIds:      make([]string, 0),
 			headerVars:  make([]*PatternMeta, 0),
 			cookieVars:  make([]*PatternMeta, 0),
 			totalIds:    make(map[string]*ParamMeta),
@@ -142,6 +140,7 @@ func (method *Method) resolveCode(file *File) {
 		Id(method.Name()).
 		Params(paramList...).Params(resultList...).
 		Block(
+
 			Return(),
 		)
 	return
@@ -347,18 +346,7 @@ func (meta *MethodMeta) TrySetMethod(httpMethod, uriPattern string) (err error) 
 		_, err = url.Parse(uriPattern)
 		if err == nil {
 			meta.httpMethod = httpMethod
-			patterns := IdRe.FindAllString(uriPattern, -1)
-			for _, pattern := range patterns {
-				id := getIdFromPattern(pattern)
-				if err = meta.checkPattern(id); err != nil {
-					break
-				}
-				meta.idList.deleteKey(id)
-				meta.uriIds = append(meta.uriIds, id)
-			}
-			if err == nil {
-				meta.uriPattern = IdRe.ReplaceAllStringFunc(uriPattern, meta.findAndReplace)
-			}
+			meta.uri, err = meta.genPatternMeta("uri", uriPattern)
 		}
 	}
 	return
