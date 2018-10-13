@@ -24,7 +24,7 @@ const (
 )
 
 const (
-// <Annotation(Key)> annotations. etc. @FilePath(path)
+// <Annotation(Key)> second annotations. etc. @FilePath(path)
 )
 
 const (
@@ -43,8 +43,8 @@ type (
 
 const (
 	FirstAnnRegex  = `(@[a-zA-Z_][0-9a-zA-Z_]*)\s+(.+)`
-	SecondAnnRegex = `(@[a-zA-Z_][0-9a-zA-Z_]*)\((.+)\)`
-	ThirdAnnRegex  = `(@[a-zA-Z_][0-9a-zA-Z_]*)\((.+)\)\s+(.+)`
+	SecondAnnRegex = `(@[a-zA-Z_][0-9a-zA-Z_]*)\((.+?)\)`
+	ThirdAnnRegex  = `(@[a-zA-Z_][0-9a-zA-Z_]*)\((.+?)\)\s+(.+)`
 )
 
 var (

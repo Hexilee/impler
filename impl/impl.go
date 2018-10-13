@@ -29,11 +29,10 @@ func Impl(service *Service, pkg string) (code string, err error) {
 	service.implName = strings.ToLower(service.name) + "Impl"
 	service.self = strings.ToLower(service.name)
 	service.pkg = pkg
-
 	file := NewFilePath(pkg)
-	service.resolveCode(file)
 	err = service.resolveMetadata()
 	if err == nil {
+		service.resolveCode(file)
 		code = fmt.Sprintf("%#v", file)
 	}
 	return
