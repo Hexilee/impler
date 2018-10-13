@@ -6,11 +6,12 @@ import (
 )
 
 const (
-	DuplicatedAnnotation        = "duplicated annotation"
-	DuplicatedHttpMethod        = "duplicated http method"
-	IdNotExist                  = "id does not exist"
-	PathIdTypeMustBeIntOrString = "id in path must be int or string"
-	UnsupportedAnnotationValue  = "annotation value is unsupported"
+	DuplicatedAnnotation           = "duplicated annotation"
+	DuplicatedHttpMethod           = "duplicated http method"
+	IdNotExist                     = "id does not exist"
+	PatternIdTypeMustBeIntOrString = "id in pattern must be int or string"
+	PatternKeyMustNotBeEmpty       = "key of pattern must not be empty"
+	UnsupportedAnnotationValue     = "annotation value is unsupported"
 )
 
 func DuplicatedAnnotationError(ann string) error {
@@ -25,8 +26,8 @@ func IdNotExistError(id string) error {
 	return errors.New(IdNotExist + ": " + id)
 }
 
-func PathIdTypeMustBeIntOrStringError(id string) error {
-	return errors.New(PathIdTypeMustBeIntOrString + ": " + id)
+func PatternIdTypeMustBeIntOrStringError(id string) error {
+	return errors.New(PatternIdTypeMustBeIntOrString + ": " + id)
 }
 
 func UnsupportedAnnotationValueError(ann, value string) error {

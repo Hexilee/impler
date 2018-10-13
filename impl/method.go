@@ -1,6 +1,7 @@
 package impl
 
 import (
+	"errors"
 	"go/types"
 	"log"
 	"net/http"
@@ -10,7 +11,9 @@ import (
 )
 
 const (
-	IdRegexp = `\{[a-zA-Z_][0-9a-zA-Z_]*\}`
+	IdRegexp          = `\{[a-zA-Z_][0-9a-zA-Z_]*\}`
+	StringPlaceholder = "%s"
+	IntPlaceholder    = "%d"
 )
 
 var (
@@ -33,7 +36,7 @@ type (
 		uriIds       []string
 		headerVars   []*PatternMeta
 		cookieVars   []*PatternMeta
-		bodyVars     []*BodyMeta
+		bodyVars     []*BodyMeta // left params as '@Param(id) {id}'
 		totalIds     map[string]*ParamMeta
 		responseIds  []string
 		responseType BodyType
@@ -53,7 +56,7 @@ type (
 	}
 
 	BodyMeta struct {
-		PatternMeta
+		*PatternMeta
 		typ ParamType
 	}
 )
@@ -107,7 +110,7 @@ func NewParamMeta(param *types.Var) (meta *ParamMeta) {
 
 // TODO: complete *Method.resolveMetadata
 func (method *Method) resolveMetadata() (err error) {
-	NewProcessor(method.commentText).Scan(func(ann, key, value string) (err error) {
+	err = NewProcessor(method.commentText).Scan(func(ann, key, value string) (err error) {
 		switch ann {
 		case GetAnn:
 			err = method.TrySetMethod(http.MethodGet, value)
@@ -132,16 +135,82 @@ func (method *Method) resolveMetadata() (err error) {
 		case SingleBodyAnn:
 			err = method.TrySetSingleBodyType(value)
 		case ParamAnn:
+			err = method.TryAddParam(key, value, TypeString)
 		case HeaderAnn:
+			var meta *PatternMeta
+			meta, err = method.genPatternMeta(key, value)
+			method.meta.headerVars = append(method.meta.headerVars, meta)
 		case CookieAnn:
+			var meta *PatternMeta
+			meta, err = method.genPatternMeta(key, value)
+			method.meta.cookieVars = append(method.meta.cookieVars, meta)
 		case FileAnn:
+			err = method.TryAddParam(key, value, TypeFile)
 		}
 		return
 	})
 
-	// TODO: resolve left idList
+	if err == nil {
+
+	}
+
+	method.resolveLeftIds()
 	// TODO: check SingleBody and length of bodyVars
 	// TODO: check response type
+	return
+}
+
+func (method *Method) resolveLeftIds() {
+	for id := range method.meta.idList {
+		if paramMeta, exist := method.meta.totalIds[id]; exist {
+			patternMeta := &PatternMeta{key: paramMeta.key, ids: []string{id}}
+			switch paramMeta.typ {
+			case TypeString:
+				patternMeta.pattern = StringPlaceholder
+			case TypeInt:
+				patternMeta.pattern = IntPlaceholder
+			}
+			bodyMeta := &BodyMeta{patternMeta, paramMeta.typ}
+			method.meta.bodyVars = append(method.meta.bodyVars, bodyMeta)
+		} else {
+			log.Fatal(IdNotExistError(id))
+		}
+		return
+	}
+	return
+}
+
+func (method *Method) TryAddParam(key, pattern string, typ ParamType) (err error) {
+	meta, err := method.genPatternMeta(key, pattern)
+	if err == nil {
+		method.meta.bodyVars = append(method.meta.bodyVars, &BodyMeta{meta, typ})
+	}
+	return
+}
+
+func (method *Method) genPatternMeta(key, pattern string) (meta *PatternMeta, err error) {
+	if key == ZeroStr {
+		err = errors.New(PatternKeyMustNotBeEmpty)
+	}
+
+	if err == nil {
+		meta = &PatternMeta{
+			key: key,
+			ids: make([]string, 0),
+		}
+		patterns := IdRe.FindAllString(pattern, -1)
+		for _, pattern := range patterns {
+			id := getIdFromPattern(pattern)
+			if err = method.checkPattern(id); err != nil {
+				break
+			}
+			method.meta.idList.deleteKey(id)
+			meta.ids = append(meta.ids, id)
+		}
+		if err == nil {
+			meta.pattern = IdRe.ReplaceAllStringFunc(pattern, method.findAndReplace)
+		}
+	}
 	return
 }
 
@@ -184,7 +253,7 @@ func (method *Method) TrySetMethod(httpMethod, uriPattern string) (err error) {
 			patterns := IdRe.FindAllString(uriPattern, -1)
 			for _, pattern := range patterns {
 				id := getIdFromPattern(pattern)
-				if err = method.checkPath(id); err != nil {
+				if err = method.checkPattern(id); err != nil {
 					break
 				}
 				method.meta.idList.deleteKey(id)
@@ -207,19 +276,19 @@ func (method *Method) findAndReplace(pattern string) (placeholder string) {
 	paramMeta := method.meta.totalIds[id]
 	switch paramMeta.typ {
 	case TypeString:
-		placeholder = "%s"
+		placeholder = StringPlaceholder
 	case TypeInt:
-		placeholder = "%d"
+		placeholder = IntPlaceholder
 	default:
-		log.Fatal(PathIdTypeMustBeIntOrStringError(id))
+		log.Fatal(PatternIdTypeMustBeIntOrStringError(id))
 	}
 	return
 }
 
-func (method *Method) checkPath(id string) (err error) {
+func (method *Method) checkPattern(id string) (err error) {
 	if meta, exist := method.meta.totalIds[id]; exist {
 		if meta.typ != TypeString && meta.typ != TypeInt {
-			err = PathIdTypeMustBeIntOrStringError(id)
+			err = PatternIdTypeMustBeIntOrStringError(id)
 		}
 	} else {
 		err = IdNotExistError(id)
