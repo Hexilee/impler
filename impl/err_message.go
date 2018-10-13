@@ -37,5 +37,5 @@ func UnsupportedAnnotationValueError(ann, value string) error {
 }
 
 func ConflictAnnotationError(ann string, value fmt.Stringer) error {
-	return errors.New(ConflictAnnotation + fmt.Sprintf("%s >-< %s", ann, value))
+	return errors.New(ConflictAnnotation + fmt.Sprintf(": %s <!> %s", ann, value))
 }

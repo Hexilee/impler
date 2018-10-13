@@ -2,6 +2,7 @@ package impl
 
 import (
 	"errors"
+	. "github.com/dave/jennifer/jen"
 	"go/types"
 	"log"
 	"net/http"
@@ -108,6 +109,32 @@ func NewParamMeta(param *types.Var) (meta *ParamMeta) {
 	return
 }
 
+func (method *Method) resolveCode(file *File) {
+	service := method.service
+	paramList := make([]Code, 0)
+	resultList := make([]Code, 0)
+	params := method.signature.Params()
+	for i := 0; i < params.Len(); i++ {
+		param := params.At(i)
+		paramList = append(paramList, Id(param.Name()).Add(getQual(param.Type().String())))
+	}
+
+	results := method.signature.Results()
+	for i := 0; i < results.Len(); i++ {
+		result := results.At(i)
+		resultList = append(resultList, getQual(result.Type().String()))
+	}
+
+	file.Func().
+		Params(Id(service.self).Qual(service.pkg, service.implName)).
+		Id(method.Name()).
+		Params(paramList...).Params(resultList...).
+		Block(
+			Return(),
+		)
+	return
+}
+
 func (method *Method) resolveMetadata() (err error) {
 	err = NewProcessor(method.commentText).Scan(func(ann, key, value string) (err error) {
 		switch ann {
@@ -170,11 +197,12 @@ func (method *Method) resolveResultType() (err error) {
 	results := method.signature.Results()
 	switch results.Len() {
 	case 2:
+		// TODO: compare types in a robuster way
 		if method.resultType == JSON ||
 			method.resultType == XML ||
 			method.resultType == HTML ||
-			(!types.Identical(results.At(0).Type(), GetType(TypeRequest)) &&
-				!types.Identical(results.At(0).Type(), GetType(TypeRequest))) ||
+			results.At(0).Type().String() != GetType(TypeRequest).String() &&
+				results.At(0).Type().String() != GetType(TypeResponse).String() ||
 			!types.Identical(results.At(1).Type(), GetType(TypeErr)) {
 			err = ConflictAnnotationError(ResultAnn, results)
 		} else {
