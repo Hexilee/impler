@@ -1,6 +1,7 @@
 package test
 
 import (
+	"io"
 	"net/http"
 	"time"
 )
@@ -34,8 +35,23 @@ type Service interface {
 	@Cookie(ga) {cookie}
 	@Result json
 	 */
-	UpdateItem(id int, cookie string, data *time.Time) (result *UploadResult, statusCode int, err error)
+	UpdateItem(id int, cookie string, data *time.Time, apiKey string) (result *UploadResult, statusCode int, err error)
+
+	/*
+	@Get /stat/{id}
+	@SingleBody json
+	 */
+	StatItem(id int, body *StatBody) (*http.Response, error)
+
+	/*
+	@Get /stat/{id}
+	@SingleBody json
+	 */
+	StatByReader(id int, body io.Reader) (*http.Response, error)
 }
 
 type UploadResult struct {
+}
+
+type StatBody struct {
 }

@@ -18,7 +18,7 @@ const (
 	OptionsAnn    = "@Options"
 	TraceAnn      = "@Trace"
 	BodyAnn       = "@Body"       // json | xml | form | multipart; default json
-	SingleBodyAnn = "@SingleBody" // json | xml | form | multipart; default json; only
+	SingleBodyAnn = "@SingleBody" // json | xml | form | multipart; default json; if singleBody, the type of single body var must be IOReader or Other
 	ResultAnn     = "@Result"     // json | xml ; default json
 	BaseAnn       = "@Base"
 )

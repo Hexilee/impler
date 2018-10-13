@@ -14,7 +14,11 @@ const (
 
 const (
 	// packages
-	HttpPkg = "net/http"
+	HttpPkg      = "net/http"
+	EncodingJSON = "encoding/json"
+	EncodingXML  = "encoding/xml"
+	Bytes        = "bytes"
+	IOIOutil     = "io/ioutil"
 )
 
 const (

@@ -19,9 +19,13 @@ const (
 
 const (
 	// ids
-	IdResult     = "result"
-	IdStatusCode = "statusCode"
-	IdError      = "err"
+	IdResult     = "genResult"
+	IdStatusCode = "genStatusCode"
+	IdError      = "genErr"
+	IdUri        = "genUri"
+	IdData       = "genData"
+	IdBody       = "genBody"
+	IdDataMap    = "genDataMap"
 )
 
 var (
@@ -108,10 +112,18 @@ func NewParamMeta(param *types.Var) (meta *ParamMeta) {
 	default:
 		meta.typ = Other
 	}
-	if types.Identical(GetType(TypeIOReader), param.Type()) {
+	if GetType(TypeIOReader).String() == param.Type().String() {
 		meta.typ = IOReader
 	}
 	return
+}
+
+func genIds(ids []string) []Code {
+	results := make([]Code, 0)
+	for _, id := range ids {
+		results = append(results, Id(id))
+	}
+	return results
 }
 
 func (method *Method) resolveCode(file *File) {
@@ -139,11 +151,51 @@ func (method *Method) resolveCode(file *File) {
 		Params(Id(service.self).Qual(service.pkg, service.implName)).
 		Id(method.Name()).
 		Params(paramList...).Params(resultList...).
-		Block(
-
-			Return(),
-		)
+		BlockFunc(method.genBody)
 	return
+}
+
+func (method *Method) genBody(group *Group) {
+	if len(method.uri.ids) == 0 {
+		group.Id(IdUri).Op(":=").Lit(method.uri.pattern)
+	} else {
+		group.Id(IdUri).Op(":=").Qual("fmt", "Sprintf").Call(Lit(method.uri.pattern), List(genIds(method.uri.ids)...))
+	}
+	switch method.requestType {
+	case JSON:
+		if method.singleBody {
+			switch method.bodyVars[0].typ {
+			case IOReader:
+				group.Id(IdBody).Op(":=").Id(method.bodyVars[0].ids[0])
+			case Other:
+				group.Var().Id(IdData).Index().Byte()
+				group.List(Id(IdData), Id(IdError)).Op("=").Qual(EncodingJSON, "Marshal").Call(Id(method.bodyVars[0].ids[0]))
+				group.If(Id(IdError).Op("!=").Nil()).Block()
+				group.Id(IdBody).Op(":=").Qual(Bytes, "NewBuffer").Call(Id(IdData))
+			}
+		} else {
+			group.Var().Id(IdData).Index().Byte()
+			group.Id(IdDataMap).Op(":=").Make(Map(String()).Interface())
+			for _, bodyVar := range method.bodyVars {
+				switch bodyVar.typ {
+				case TypeInt:
+					fallthrough
+				case TypeString:
+					if len(bodyVar.ids) == 0 {
+						group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Lit(method.uri.pattern)
+					} else {
+						group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Qual("fmt", "Sprintf").Call(Lit(method.uri.pattern), List(genIds(method.uri.ids)...))
+					}
+				case IOReader:
+					group.List(Id(IdData), Id(IdError)).Op("=").Qual(IOIOutil, "ReadAll").Call(Id(bodyVar.ids[0]))
+					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").String().Values(Id(IdData))
+				case Other:
+					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Id(bodyVar.ids[0])
+				}
+			}
+		}
+	}
+	group.Return()
 }
 
 func (method *Method) resolveMetadata() (err error) {
@@ -191,8 +243,12 @@ func (method *Method) resolveMetadata() (err error) {
 
 	if err == nil {
 		method.resolveLeftIds()
-		if method.singleBody && len(method.bodyVars) != 1 {
-			err = errors.New(SingleBodyWithMultiBodyVars)
+		if method.singleBody {
+			if len(method.bodyVars) != 1 ||
+			// if singleBody, the type of single body must be IOReader or Other
+				method.bodyVars[0].typ != IOReader && method.bodyVars[0].typ != Other {
+				err = errors.New(SingleBodyWithMultiBodyVars)
+			}
 		}
 		if err == nil {
 			err = method.resolveResultType()
@@ -258,7 +314,6 @@ func (meta *MethodMeta) resolveLeftIds() {
 		} else {
 			log.Fatal(IdNotExistError(id))
 		}
-		return
 	}
 	return
 }
