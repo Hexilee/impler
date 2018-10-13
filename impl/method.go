@@ -17,6 +17,13 @@ const (
 	IntPlaceholder    = "%d"
 )
 
+const (
+	// ids
+	IdResult     = "result"
+	IdStatusCode = "statusCode"
+	IdError      = "err"
+)
+
 var (
 	IdRe = regexp.MustCompile(IdRegexp)
 )
@@ -120,9 +127,14 @@ func (method *Method) resolveCode(file *File) {
 	}
 
 	results := method.signature.Results()
-	for i := 0; i < results.Len(); i++ {
-		result := results.At(i)
-		resultList = append(resultList, getQual(result.Type().String()))
+	resultList = append(resultList, Id(IdResult).Add(getQual(results.At(0).Type().String())))
+	if results.Len() == 2 {
+		resultList = append(resultList, Id(IdError).Add(getQual(results.At(1).Type().String())))
+	}
+
+	if results.Len() == 3 {
+		resultList = append(resultList, Id(IdStatusCode).Add(getQual(results.At(1).Type().String())))
+		resultList = append(resultList, Id(IdError).Add(getQual(results.At(2).Type().String())))
 	}
 
 	file.Func().

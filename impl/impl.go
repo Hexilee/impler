@@ -24,14 +24,6 @@ const (
 	ErrorToken  = "error"
 )
 
-const (
-	// ids
-	IdResp       = "resp"
-	IdReq        = "req"
-	IdStatusCode = "statusCode"
-	IdError      = "err"
-)
-
 func Impl(service *Service, pkg string) (code string, err error) {
 	service.newFunc = "New" + service.name
 	service.implName = strings.ToLower(service.name) + "Impl"
@@ -49,33 +41,27 @@ func Impl(service *Service, pkg string) (code string, err error) {
 
 // *net/http.Response -> Op("*").Qual("net/http", "Response")
 func getQual(typ string) *Statement {
-	switch typ {
-	case IntToken:
-		return Int()
-	case StringToken:
-		return String()
-	case ErrorToken:
-		return Err()
-	default:
-		var statement *Statement
-		if strings.HasPrefix(typ, "*") {
-			statement = Op("*")
-			typ = typ[1:]
-		}
-		var pkg string
-		dot := strings.LastIndex(typ, ".")
-		if dot != -1 {
-			pkg = typ[:dot]
-			typ = typ[dot+1:]
-		}
-
-		//fmt.Printf("pkg: %s; typ: %s\n", pkg, typ)
-		qual := Qual(pkg, typ)
-		if statement == nil {
-			statement = qual
-		} else {
-			statement = statement.Add(qual)
-		}
-		return statement
+	if !strings.Contains(typ, ".") {
+		return Id(typ)
 	}
+	var statement *Statement
+	if strings.HasPrefix(typ, "*") {
+		statement = Op("*")
+		typ = typ[1:]
+	}
+	var pkg string
+	dot := strings.LastIndex(typ, ".")
+	if dot != -1 {
+		pkg = typ[:dot]
+		typ = typ[dot+1:]
+	}
+
+	//fmt.Printf("pkg: %s; typ: %s\n", pkg, typ)
+	qual := Qual(pkg, typ)
+	if statement == nil {
+		statement = qual
+	} else {
+		statement = statement.Add(qual)
+	}
+	return statement
 }
