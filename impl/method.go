@@ -316,6 +316,7 @@ func (method *Method) unmarshalResult(group *Group, pkg string) {
 		Qual(Ioutil, "ReadAll").Call(Id(IdResponse).Dot("Body"))
 	group.Defer().Id(IdResponse).Dot("Body").Dot("Close").Call()
 	group.If(Id(IdError).Op("!=").Nil()).Block(Return())
+	group.Id(IdStatusCode).Op("=").Id(IdResponse).Dot("StatusCode")
 	group.Id(IdResult).Op("=").Add(method.newObject(method.signature.Results().At(0).Type().String())).Values()
 	group.Id(IdError).Op("=").Qual(pkg, "Unmarshal").Call(Id(IdResultData), Id(IdResult))
 	group.If(Id(IdError).Op("!=").Nil()).Block(Return())
