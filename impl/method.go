@@ -20,23 +20,27 @@ const (
 
 const (
 	// ids
-	IdResult     = "genResult"
-	IdRequest    = "genRequest"
-	IdResponse   = "genResponse"
-	IdClient     = "genClient"
-	IdStatusCode = "genStatusCode"
-	IdError      = "genErr"
-	IdUri        = "genUri"
-	IdUrl        = "genFinalUrl"
-	IdData       = "genData"
-	IdResultData = "genResultData"
-	IdBody       = "genBody"
-	IdDataMap    = "genDataMap"
-	IdPartWriter = "genPartWriter"
-	IdBodyWriter = "genBodyWriter"
-	IdFile       = "genFile"
-	IdFilePath   = "genFilePath"
-	IdHeader     = "genHeader"
+	IdResult      = "genResult"
+	IdRequest     = "genRequest"
+	IdResponse    = "genResponse"
+	IdClient      = "genClient"
+	IdStatusCode  = "genStatusCode"
+	IdError       = "genErr"
+	IdUri         = "genUri"
+	IdUrl         = "genFinalUrl"
+	IdData        = "genData"
+	IdResultData  = "genResultData"
+	IdBody        = "genBody"
+	IdDataMap     = "genDataMap"
+	IdPartWriter  = "genPartWriter"
+	IdBodyWriter  = "genBodyWriter"
+	IdFile        = "genFile"
+	IdFilePath    = "genFilePath"
+	IdCookie      = "genCookie"
+	IdHeaderKey   = "genHeaderKey"
+	IdHeaderSlice = "genHeaderSlice"
+	IdHeaderValue = "genHeaderValue"
+	IdHeader      = "genHeader"
 )
 
 var (
@@ -221,7 +225,7 @@ func (method *Method) setContentType(group *Group) {
 }
 
 func (method *Method) genRequest(group *Group) {
-	group.Id(IdUrl).Op(":=").Qual(StringsPkg, "TrimRight").Call(Lit(method.service.baseUrl), Lit("/")).
+	group.Id(IdUrl).Op(":=").Qual(StringsPkg, "TrimRight").Call(Id(method.service.self).Dot(FieldBaseUrl), Lit("/")).
 		Op("+").
 		Lit("/").
 		Op("+").
@@ -234,11 +238,11 @@ func (method *Method) genRequest(group *Group) {
 }
 
 func (method *Method) addHeader(group *Group) {
-	for key, values := range method.service.header {
-		for _, value := range values {
-			group.Id(IdRequest).Dot("Header").Dot("Add").Call(Lit(key), Lit(value))
-		}
-	}
+	group.For(List(Id(IdHeaderKey), Id(IdHeaderSlice))).Op(":=").Range().Id(method.service.self).Dot(FieldHeader).Block(
+		For(List(Id("_"), Id(IdHeaderValue))).Op(":=").Range().Id(IdHeaderSlice).Block(
+			Id(IdRequest).Dot("Header").Dot("Add").Call(Id(IdHeaderKey), Id(IdHeaderValue)),
+		),
+	)
 
 	for _, pattern := range method.headerVars {
 		if len(pattern.ids) == 0 {
@@ -254,14 +258,9 @@ func (method *Method) addHeader(group *Group) {
 }
 
 func (method *Method) addCookies(group *Group) {
-	for _, cookie := range method.service.cookies {
-		group.Id(IdRequest).Dot("AddCookie").Call(
-			Op("&").Qual(HttpPkg, "Cookie").Values(Dict{
-				Id("Name"):  Lit(cookie.Name),
-				Id("Value"): Lit(cookie.Value),
-			}),
-		)
-	}
+	group.For(List(Id("_"), Id(IdCookie))).Op(":=").Range().Id(method.service.self).Dot(FieldCookies).Block(
+		Id(IdRequest).Dot("AddCookie").Call(Id(IdCookie)),
+	)
 
 	for _, pattern := range method.cookieVars {
 		if len(pattern.ids) == 0 {
