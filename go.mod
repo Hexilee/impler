@@ -1,4 +1,4 @@
-module impler
+module github.com/Hexilee/impler
 
 require (
 	github.com/dave/jennifer v1.1.0

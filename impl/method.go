@@ -2,9 +2,9 @@ package impl
 
 import (
 	"errors"
+	"github.com/Hexilee/impler/headers"
 	. "github.com/dave/jennifer/jen"
 	"go/types"
-	"impler/headers"
 	"log"
 	"net/http"
 	"net/url"

@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/Hexilee/impler/impl"
 	"go/ast"
 	"go/importer"
 	"go/parser"
 	"go/token"
 	"go/types"
-	"impler/impl"
 	"io/ioutil"
 	"log"
 	"os"
