@@ -9,9 +9,9 @@ import (
 //go:generate go run ../main.go Service
 
 /*
-@Base https://box.zjuqsc.com/item
-@Header(User-Agent) Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36
-@Cookie(ga) bb78137vt73817ynyh89
+@Base {scheme}://box.zjuqsc.com/item
+@Header(User-Agent) {userAgent}
+@Cookie(ga) {ga}
 @Cookie(qsc_session) secure_7y7y1n570y
 */
 type Service interface {

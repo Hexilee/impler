@@ -632,6 +632,7 @@ func (meta *MethodMeta) TryAddParam(key, pattern string, typ ParamType) (err err
 }
 
 func (meta *MethodMeta) genPatternMeta(key, pattern string) (patternMeta *PatternMeta, err error) {
+	// TODO: can be empty?
 	if key == ZeroStr {
 		err = errors.New(PatternKeyMustNotBeEmpty)
 	}
