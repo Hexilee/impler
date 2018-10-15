@@ -250,6 +250,9 @@ func (srv *Service) resolveMetadata() (err error) {
 		}
 		return
 	})
+	if err == nil {
+		srv.resolveBaseUrl()
+	}
 	return
 }
 
