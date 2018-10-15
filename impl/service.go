@@ -23,7 +23,7 @@ func NewService(name string, service *types.Interface) *Service {
 		name:    name,
 		service: service,
 		ServiceMeta: &ServiceMeta{
-			idList:     make(IdList),
+			idList:     make([]string, 0),
 			headerVars: make([]*PatternMeta, 0),
 			cookieVars: make([]*PatternMeta, 0),
 		},
@@ -40,7 +40,7 @@ type (
 	}
 
 	ServiceMeta struct {
-		idList                       IdList // TODO: need order
+		idList                       []string
 		baseUrl                      *PatternMeta
 		headerVars                   []*PatternMeta
 		cookieVars                   []*PatternMeta
@@ -84,7 +84,7 @@ DON'T EDIT IT!
 
 func (srv *Service) getParams() (params Code) {
 	paramList := make([]Code, 0)
-	for id := range srv.idList {
+	for _, id := range srv.idList {
 		paramList = append(paramList, Id(id))
 	}
 
@@ -295,7 +295,7 @@ func (meta *ServiceMeta) genPatternMeta(key, pattern string) (patternMeta *Patte
 	patterns := IdRe.FindAllString(pattern, -1)
 	for _, pattern := range patterns {
 		id := getIdFromPattern(pattern)
-		meta.idList.addKey(id)
+		meta.idList = append(meta.idList, id)
 		patternMeta.ids = append(patternMeta.ids, id)
 	}
 	patternMeta.pattern = IdRe.ReplaceAllStringFunc(pattern, meta.findAndReplace)
