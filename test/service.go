@@ -50,7 +50,7 @@ type Service interface {
 	StatByReader(id int, body io.Reader) (*http.Response, error)
 
 	/*
-	@Post /
+	@Post
 	@Body form
 	@Param(name) {firstName}.Lee
 	 */
