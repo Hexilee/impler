@@ -511,23 +511,42 @@ func (method *Method) resolveMetadata() (err error) {
 
 	if err == nil {
 		method.resolveLeftIds()
-		if method.singleBody {
-			if len(method.bodyVars) != 1 ||
-			// if singleBody, the type of single body must be IOReader or Other
-				method.bodyVars[0].typ != IOReader && method.bodyVars[0].typ != Other {
-				err = errors.New(SingleBodyWithMultiBodyVars)
-			}
-		}
+		err = method.checkSingleBody()
 		if err == nil {
+			method.resolveRequestType()
+			method.resolveUri()
 			err = method.resolveResultType()
-			if err == nil && method.requestType == ZeroStr {
-				method.requestType = JSON
+			if err == nil {
+				Log.Debugf(`Final URI: "%s".Format(%v...)`, method.uri.pattern, method.uri.ids)
+				Log.Debugf("Final Request Type: %s", method.requestType)
+				Log.Debugf("Final Result Type: %s", method.resultType)
 			}
-			Log.Debugf("Final Request Type: %s", method.requestType)
-			Log.Debugf("Final Result Type: %s", method.resultType)
 		}
 	}
 	return
+}
+
+func (method *Method) resolveUri() {
+	if method.uri == nil {
+		method.uri, _ = method.genPatternMeta("uri", "/")
+	}
+}
+
+func (method *Method) checkSingleBody() (err error) {
+	if method.singleBody {
+		if len(method.bodyVars) != 1 ||
+		// if singleBody, the type of single body must be IOReader or Other
+			method.bodyVars[0].typ != IOReader && method.bodyVars[0].typ != Other {
+			err = errors.New(SingleBodyWithMultiBodyVars)
+		}
+	}
+	return
+}
+
+func (method *Method) resolveRequestType() {
+	if method.requestType == ZeroStr {
+		method.requestType = JSON
+	}
 }
 
 func (method *Method) resolveResultType() (err error) {
