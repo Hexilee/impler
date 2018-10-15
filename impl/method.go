@@ -179,7 +179,7 @@ func (method *Method) genMethodBody(group *Group) {
 	} else if method.uri.pattern == StringPlaceholder {
 		group.Id(IdUri).Op(":=").Id(method.uri.ids[0])
 	} else {
-		group.Id(IdUri).Op(":=").Qual("fmt", "Sprintf").Call(Lit(method.uri.pattern), List(genIds(method.uri.ids)...))
+		group.Id(IdUri).Op(":=").Qual(FormatPkg, "Sprintf").Call(Lit(method.uri.pattern), List(genIds(method.uri.ids)...))
 	}
 	method.genBody(group)
 	method.genRequest(group)
@@ -253,7 +253,7 @@ func (method *Method) addHeader(group *Group) {
 		} else {
 			group.Id(IdRequest).Dot("Header").
 				Dot("Set").Call(Lit(pattern.key),
-				Qual("fmt", "Sprintf").Call(Lit(pattern.pattern), List(genIds(pattern.ids)...)))
+				Qual(FormatPkg, "Sprintf").Call(Lit(pattern.pattern), List(genIds(pattern.ids)...)))
 		}
 	}
 }
@@ -282,7 +282,7 @@ func (method *Method) addCookies(group *Group) {
 			group.Id(IdRequest).Dot("AddCookie").Call(
 				Op("&").Qual(HttpPkg, "Cookie").Values(Dict{
 					Id("Name"):  Lit(pattern.key),
-					Id("Value"): Qual("fmt", "Sprintf").Call(Lit(pattern.pattern), List(genIds(pattern.ids)...)),
+					Id("Value"): Qual(FormatPkg, "Sprintf").Call(Lit(pattern.pattern), List(genIds(pattern.ids)...)),
 				}),
 			)
 		}
@@ -362,7 +362,7 @@ func (method *Method) genFormBody(group *Group) {
 			} else if bodyVar.pattern == StringPlaceholder {
 				group.Id(IdDataMap).Dot("Add").Call(Lit(bodyVar.key), Id(bodyVar.ids[0]))
 			} else {
-				group.Id(IdDataMap).Dot("Add").Call(Lit(bodyVar.key), Qual("fmt", "Sprintf").Call(Lit(bodyVar.pattern), List(genIds(bodyVar.ids)...)))
+				group.Id(IdDataMap).Dot("Add").Call(Lit(bodyVar.key), Qual(FormatPkg, "Sprintf").Call(Lit(bodyVar.pattern), List(genIds(bodyVar.ids)...)))
 			}
 		}
 	}
@@ -390,7 +390,7 @@ func (method *Method) getFileWriter(bodyVar *BodyMeta) func(group *Group) {
 		} else if bodyVar.pattern == StringPlaceholder {
 			group.Id(IdFilePath).Op("=").Id(bodyVar.ids[0])
 		} else {
-			group.Id(IdFilePath).Op("=").Qual("fmt", "Sprintf").Call(Lit(bodyVar.pattern), List(genIds(bodyVar.ids)...))
+			group.Id(IdFilePath).Op("=").Qual(FormatPkg, "Sprintf").Call(Lit(bodyVar.pattern), List(genIds(bodyVar.ids)...))
 		}
 		group.List(Id(IdFile), Id(IdError)).Op("=").Qual(OS, "Open").Call(Id(IdFilePath))
 		group.Defer().Id(IdFile).Dot("Close").Call()
@@ -418,7 +418,7 @@ func (method *Method) genMultipartBody(group *Group) {
 			} else if bodyVar.pattern == StringPlaceholder {
 				group.Id(IdBodyWriter).Dot("WriteField").Call(Lit(bodyVar.key), Id(bodyVar.ids[0]))
 			} else {
-				group.Id(IdBodyWriter).Dot("WriteField").Call(Lit(bodyVar.key), Qual("fmt", "Sprintf").Call(Lit(bodyVar.pattern), List(genIds(bodyVar.ids)...)))
+				group.Id(IdBodyWriter).Dot("WriteField").Call(Lit(bodyVar.key), Qual(FormatPkg, "Sprintf").Call(Lit(bodyVar.pattern), List(genIds(bodyVar.ids)...)))
 			}
 		case IOReader:
 			group.BlockFunc(method.getIOReaderWriter(bodyVar))
@@ -455,7 +455,7 @@ func (method *Method) genJSONOrXMLBody(group *Group, pkg string) {
 				} else if bodyVar.pattern == StringPlaceholder {
 					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Id(bodyVar.ids[0])
 				} else {
-					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Qual("fmt", "Sprintf").Call(Lit(bodyVar.pattern), List(genIds(bodyVar.ids)...))
+					group.Id(IdDataMap).Index(Lit(bodyVar.key)).Op("=").Qual(FormatPkg, "Sprintf").Call(Lit(bodyVar.pattern), List(genIds(bodyVar.ids)...))
 				}
 			case IOReader:
 				group.List(Id(IdData), Id(IdError)).Op("=").Qual(Ioutil, "ReadAll").Call(Id(bodyVar.ids[0]))

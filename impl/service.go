@@ -104,7 +104,7 @@ func (srv *Service) setBaseUrl(group *Group) {
 	} else {
 		// add Format pkg
 		group.Id(srv.self).Dot(FieldBaseUrl).Op("=").
-			Qual("fmt", "Sprintf").Call(Lit(srv.baseUrl.pattern), List(genIds(srv.baseUrl.ids)...))
+			Qual(FormatPkg, "Sprintf").Call(Lit(srv.baseUrl.pattern), List(genIds(srv.baseUrl.ids)...))
 	}
 }
 
@@ -117,7 +117,7 @@ func (srv *Service) addHeader(group *Group) {
 		} else {
 			group.Id(srv.self).Dot(FieldHeader).
 				Dot("Add").Call(Lit(pattern.key),
-				Qual("fmt", "Sprintf").Call(Lit(pattern.pattern), List(genIds(pattern.ids)...)))
+				Qual(FormatPkg, "Sprintf").Call(Lit(pattern.pattern), List(genIds(pattern.ids)...)))
 		}
 	}
 }
@@ -145,7 +145,7 @@ func (srv *Service) addCookies(group *Group) {
 				Id(srv.self).Dot(FieldCookies),
 				Op("&").Qual(HttpPkg, "Cookie").Values(Dict{
 					Id("Name"):  Lit(pattern.key),
-					Id("Value"): Qual("fmt", "Sprintf").Call(Lit(pattern.pattern), List(genIds(pattern.ids)...)),
+					Id("Value"): Qual(FormatPkg, "Sprintf").Call(Lit(pattern.pattern), List(genIds(pattern.ids)...)),
 				}),
 			)
 		}
