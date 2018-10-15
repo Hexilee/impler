@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 	"github.com/Hexilee/impler/impl"
+	. "github.com/Hexilee/impler/log"
 	"go/ast"
 	"go/importer"
 	"go/parser"
 	"go/token"
 	"go/types"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 )
@@ -27,32 +27,30 @@ var (
 
 func main() {
 	if GoFile == ZeroStr || GoPkg == ZeroStr {
-		log.Fatal("$GOFILE and $GOPACKAGE cannot be empty")
+		Log.Fatal("$GOFILE and $GOPACKAGE cannot be empty")
 	}
 	serviceName := os.Args[1]
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, GoFile, nil, parser.ParseComments)
 	if err != nil {
-		log.Fatal(err)
+		Log.Fatal(err.Error())
 	}
-
 	cmap := ast.NewCommentMap(fset, file, file.Comments)
 	conf := types.Config{Importer: importer.Default()}
 	pkg, err := conf.Check(GoPkg, fset, []*ast.File{file}, nil)
 	if err != nil {
-		log.Fatal(err) // type error
+		Log.Fatal(err.Error()) // type error
 	}
 
 	rawService, ok := pkg.Scope().Lookup(serviceName).Type().Underlying().(*types.Interface)
 	if !ok {
-		log.Fatal(serviceName + " is not a interface")
+		Log.Fatal(serviceName + " is not a interface")
 	}
 
 	service := impl.NewService(serviceName, rawService).InitComments(cmap)
-	fmt.Println(service)
 	code, err := impl.Impl(service, GoPkg)
 	if err != nil {
-		log.Fatal(err)
+		Log.Fatal(err.Error())
 	}
 
 	implFileName := fmt.Sprintf("%s_impl.go", strings.ToLower(serviceName))

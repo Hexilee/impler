@@ -2,6 +2,7 @@ package impl
 
 import (
 	"fmt"
+	. "github.com/Hexilee/impler/log"
 	. "github.com/dave/jennifer/jen"
 	"strings"
 )
@@ -36,6 +37,7 @@ const (
 )
 
 func Impl(service *Service, pkg string) (code string, err error) {
+	Log.Infof("Implement Service: %s", service.name)
 	service.newFunc = "New" + service.name
 	service.implName = strings.ToLower(service.name) + "Impl"
 	service.self = strings.ToLower(service.name)

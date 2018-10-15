@@ -2,6 +2,7 @@ package impl
 
 import (
 	"fmt"
+	. "github.com/Hexilee/impler/log"
 	. "github.com/dave/jennifer/jen"
 	"go/ast"
 	"go/token"
@@ -84,6 +85,7 @@ DON'T EDIT IT!
 	)
 
 	for _, method := range srv.methods {
+		Log.Infof("Implement method: %s", method.String())
 		method.resolveCode(file)
 	}
 }
@@ -181,11 +183,11 @@ func (srv *Service) resolveMetadata() (err error) {
 			if srv.baseUrl != ZeroStr {
 				err = DuplicatedAnnotationError(BaseAnn)
 			}
-			srv.baseUrl = value
+			srv.setBaseUrl(value)
 		case HeaderAnn:
-			srv.header.Add(key, value)
+			srv.addHeader(key, value)
 		case CookieAnn:
-			srv.cookies = append(srv.cookies, &http.Cookie{Name: key, Value: value})
+			srv.addCookie(key, value)
 		}
 		return
 	})
@@ -197,4 +199,19 @@ func (srv *Service) resolveMetadata() (err error) {
 		}
 	}
 	return
+}
+
+func (srv *Service) setBaseUrl(value string) {
+	Log.Debugf("Set BaseURL: %s", value)
+	srv.baseUrl = value
+}
+
+func (srv *Service) addHeader(key, value string) {
+	Log.Debugf("Add Header: %s(%s)", key, value)
+	srv.header.Add(key, value)
+}
+
+func (srv *Service) addCookie(key, value string) {
+	Log.Debugf("Add Cookie: %s(%s)", key, value)
+	srv.cookies = append(srv.cookies, &http.Cookie{Name: key, Value: value})
 }
