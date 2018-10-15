@@ -523,6 +523,8 @@ func (method *Method) resolveMetadata() (err error) {
 			if err == nil && method.requestType == ZeroStr {
 				method.requestType = JSON
 			}
+			Log.Debugf("Final Request Type: %s", method.requestType)
+			Log.Debugf("Final Result Type: %s", method.resultType)
 		}
 	}
 	return
@@ -570,6 +572,7 @@ func (method *Method) resolveResultType() (err error) {
 func (meta *MethodMeta) resolveLeftIds() {
 	for id := range meta.idList {
 		if paramMeta, exist := meta.totalIds[id]; exist {
+			Log.Debugf("Set Param(%s) <- %s", paramMeta.key, id)
 			patternMeta := &PatternMeta{key: paramMeta.key, ids: []string{id}}
 			switch paramMeta.typ {
 			case TypeString:
