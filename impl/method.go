@@ -3,6 +3,7 @@ package impl
 import (
 	"errors"
 	"github.com/Hexilee/impler/headers"
+	. "github.com/Hexilee/impler/log"
 	. "github.com/dave/jennifer/jen"
 	"go/types"
 	"log"
@@ -499,13 +500,9 @@ func (method *Method) resolveMetadata() (err error) {
 		case ParamAnn:
 			err = method.TryAddParam(key, value, TypeString)
 		case HeaderAnn:
-			var meta *PatternMeta
-			meta, err = method.genPatternMeta(key, value)
-			method.headerVars = append(method.headerVars, meta)
+			err = method.TryAddHeader(key, value)
 		case CookieAnn:
-			var meta *PatternMeta
-			meta, err = method.genPatternMeta(key, value)
-			method.cookieVars = append(method.cookieVars, meta)
+			err = method.TryAddCookie(key, value)
 		case FileAnn:
 			err = method.TryAddParam(key, value, TypeFile)
 		}
@@ -589,9 +586,24 @@ func (meta *MethodMeta) resolveLeftIds() {
 	return
 }
 
+func (meta *MethodMeta) TryAddHeader(key, value string) (err error) {
+	var patternMeta *PatternMeta
+	patternMeta, err = meta.genPatternMeta(key, value)
+	meta.headerVars = append(meta.headerVars, patternMeta)
+	return
+}
+
+func (meta *MethodMeta) TryAddCookie(key, value string) (err error) {
+	var patternMeta *PatternMeta
+	patternMeta, err = meta.genPatternMeta(key, value)
+	meta.headerVars = append(meta.cookieVars, patternMeta)
+	return
+}
+
 func (meta *MethodMeta) TryAddParam(key, pattern string, typ ParamType) (err error) {
 	patternMeta, err := meta.genPatternMeta(key, pattern)
 	if err == nil {
+		Log.Debugf("Set Param(%s) %s", patternMeta.key, pattern)
 		meta.bodyVars = append(meta.bodyVars, &BodyMeta{patternMeta, typ})
 	}
 	return
@@ -626,6 +638,7 @@ func (meta *MethodMeta) genPatternMeta(key, pattern string) (patternMeta *Patter
 func (meta *MethodMeta) TrySetBodyType(value string) (err error) {
 	if meta.requestType == ZeroStr {
 		if value == JSON || value == XML || value == Form || value == Multipart {
+			Log.Debugf("Set Request Body: %s", value)
 			meta.requestType = BodyType(value)
 		} else {
 			err = UnsupportedAnnotationValueError(BodyAnn, value)
@@ -652,6 +665,7 @@ func (meta *MethodMeta) TrySetResultType(value string) (err error) {
 func (meta *MethodMeta) TrySetSingleBodyType(value string) (err error) {
 	if meta.requestType == ZeroStr {
 		if value == JSON || value == XML {
+			Log.Debugf("Set Request Body: %s(Single)", value)
 			meta.requestType = BodyType(value)
 			meta.singleBody = true
 		} else {
@@ -673,6 +687,9 @@ func (meta *MethodMeta) TrySetMethod(httpMethod, uriPattern string) (err error) 
 		if err == nil {
 			meta.httpMethod = httpMethod
 			meta.uri, err = meta.genPatternMeta("uri", uriPattern)
+			if err == nil {
+				Log.Debugf("Set Method: %s(%s)", httpMethod, uriPattern)
+			}
 		}
 	}
 	return

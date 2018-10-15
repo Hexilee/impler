@@ -45,7 +45,7 @@ func Impl(service *Service, pkg string) (code string, err error) {
 	file := NewFilePath(pkg)
 	err = service.resolveMetadata()
 	if err == nil {
-		service.resolveCode(file)
+		err = service.resolveCode(file)
 		code = fmt.Sprintf("%#v", file)
 	}
 	return
