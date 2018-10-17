@@ -5,6 +5,7 @@ import (
 	"github.com/Hexilee/impler/headers"
 	. "github.com/Hexilee/impler/log"
 	. "github.com/dave/jennifer/jen"
+	"github.com/rady-io/annotation-processor"
 	"go/types"
 	"log"
 	"net/http"
@@ -471,7 +472,7 @@ func (method *Method) genJSONOrXMLBody(group *Group, pkg string) {
 }
 
 func (method *Method) resolveMetadata() (err error) {
-	err = NewProcessor(method.commentText).Scan(func(ann, key, value string) (err error) {
+	err = processor.NewProcessor(method.commentText).Scan(func(ann, key, value string) (err error) {
 		switch ann {
 		case GetAnn:
 			err = method.TrySetMethod(http.MethodGet, value)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	. "github.com/Hexilee/impler/log"
 	. "github.com/dave/jennifer/jen"
+	"github.com/rady-io/annotation-processor"
 	"go/ast"
 	"go/token"
 	"go/types"
@@ -239,7 +240,7 @@ func (srv Service) String() string {
 }
 
 func (srv *Service) resolveMetadata() (err error) {
-	err = NewProcessor(srv.commentText).Scan(func(ann, key, value string) (err error) {
+	err = processor.NewProcessor(srv.commentText).Scan(func(ann, key, value string) (err error) {
 		switch ann {
 		case BaseAnn:
 			err = srv.ServiceMeta.trySetBaseUrl(value)
