@@ -1,4 +1,4 @@
-module github.com/Hexilee/impler
+module github.com/rady-io/http-service
 
 require (
 	github.com/dave/jennifer v1.1.0

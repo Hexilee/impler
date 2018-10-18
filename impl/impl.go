@@ -2,8 +2,8 @@ package impl
 
 import (
 	"fmt"
-	. "github.com/Hexilee/impler/log"
 	. "github.com/dave/jennifer/jen"
+	. "github.com/rady-io/http-service/log"
 	"strings"
 )
 

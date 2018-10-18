@@ -2,10 +2,10 @@ package impl
 
 import (
 	"errors"
-	"github.com/Hexilee/impler/headers"
-	. "github.com/Hexilee/impler/log"
 	. "github.com/dave/jennifer/jen"
 	"github.com/rady-io/annotation-processor"
+	"github.com/rady-io/http-service/headers"
+	. "github.com/rady-io/http-service/log"
 	"go/types"
 	"log"
 	"net/http"

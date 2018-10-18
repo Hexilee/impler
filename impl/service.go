@@ -2,9 +2,9 @@ package impl
 
 import (
 	"fmt"
-	. "github.com/Hexilee/impler/log"
 	. "github.com/dave/jennifer/jen"
 	"github.com/rady-io/annotation-processor"
+	. "github.com/rady-io/http-service/log"
 	"go/ast"
 	"go/token"
 	"go/types"

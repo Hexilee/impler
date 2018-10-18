@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/Hexilee/impler/impl"
-	. "github.com/Hexilee/impler/log"
+	"github.com/rady-io/http-service/impl"
+	. "github.com/rady-io/http-service/log"
 	"go/ast"
 	"go/importer"
 	"go/parser"
