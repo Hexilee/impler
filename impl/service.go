@@ -187,19 +187,29 @@ func (srv *Service) TrySetNode(node *ast.GenDecl) {
 				obj := srv.info.Defs[typ.Name]
 				if obj != nil {
 					if service, ok := obj.Type().Underlying().(*types.Interface); ok {
-						for i := 0; i < service.NumExplicitMethods(); i++ {
-							rawMethod := service.ExplicitMethod(i)
-							srv.SetMethod(rawMethod)
-						}
+						srv.setMethods(service)
 						srv.service = service
-						srv.commentText = strings.Trim(typ.Doc.Text(), LF)
-						fmt.Println(node.Doc.Text())
+						srv.commentText = combineComments(node.Doc.Text(), typ.Doc.Text())
 					}
 				}
 			}
 		}
 	}
 	return
+}
+
+func combineComments(typeSpecComments, interfaceComments string) (comments string) {
+	typeSpecComments = strings.Trim(typeSpecComments, LF)
+	interfaceComments = strings.Trim(interfaceComments, LF)
+	comments = typeSpecComments + LF + interfaceComments
+	return
+}
+
+func (srv *Service) setMethods(service *types.Interface) {
+	for i := 0; i < service.NumExplicitMethods(); i++ {
+		rawMethod := service.ExplicitMethod(i)
+		srv.SetMethod(rawMethod)
+	}
 }
 
 func (srv *Service) TryAddField(node *ast.Field) {
