@@ -18,12 +18,11 @@ const (
 	LF        = "\n"
 )
 
-func NewService(name string, service *types.Interface, info *types.Info) *Service {
+func NewService(name string, info *types.Info) *Service {
 	return &Service{
 		info:    info,
 		methods: make(map[token.Pos]*Method),
 		name:    name,
-		service: service,
 		ServiceMeta: &ServiceMeta{
 			idList:     make([]string, 0),
 			headerVars: make([]*PatternMeta, 0),
@@ -157,12 +156,12 @@ func (srv *Service) addCookies(group *Group) {
 
 func (srv *Service) InitComments(cmap ast.CommentMap) *Service {
 	for node := range cmap {
-		switch tok := node.(type) {
-		case *ast.GenDecl:
-			if !srv.Complete() {
-				srv.TrySetNode(tok)
-			}
-		case *ast.Field:
+		if tok, ok := node.(*ast.GenDecl); ok &&  !srv.Complete() {
+			srv.TrySetNode(tok)
+		}
+	}
+	for node := range cmap {
+		if tok, ok := node.(*ast.Field); ok {
 			srv.TryAddField(tok)
 		}
 	}

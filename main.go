@@ -49,12 +49,7 @@ func main() {
 		Log.Fatal(err.Error()) // type error
 	}
 
-	//rawService, ok := pkg.Scope().Lookup(serviceName).Type().Underlying().(*types.Interface)
-	//if !ok {
-	//	Log.Fatal(serviceName + " is not a interface")
-	//}
-
-	service := impl.NewService(serviceName, nil, info).InitComments(cmap)
+	service := impl.NewService(serviceName, info).InitComments(cmap)
 	code, err := impl.Impl(service, GoPkg)
 	if err != nil {
 		Log.Fatal(err.Error())
