@@ -18,8 +18,9 @@ const (
 	LF        = "\n"
 )
 
-func NewService(name string, service *types.Interface) *Service {
+func NewService(name string, service *types.Interface, info *types.Info) *Service {
 	return &Service{
+		info:    info,
 		methods: make(map[token.Pos]*Method),
 		name:    name,
 		service: service,
@@ -33,6 +34,7 @@ func NewService(name string, service *types.Interface) *Service {
 
 type (
 	Service struct {
+		info        *types.Info
 		methods     map[token.Pos]*Method
 		name        string
 		commentText string
@@ -154,10 +156,6 @@ func (srv *Service) addCookies(group *Group) {
 }
 
 func (srv *Service) InitComments(cmap ast.CommentMap) *Service {
-	for i := 0; i < srv.service.NumExplicitMethods(); i++ {
-		rawMethod := srv.service.ExplicitMethod(i)
-		srv.SetMethod(rawMethod)
-	}
 	for node := range cmap {
 		switch tok := node.(type) {
 		case *ast.GenDecl:
@@ -182,17 +180,24 @@ func (srv *Service) TrySetNode(node *ast.GenDecl) {
 	}
 
 	if success {
-		for i := 0; i < srv.service.NumExplicitMethods(); i++ {
-			method := srv.service.ExplicitMethod(i)
-			if method.Pos() < node.Pos() || method.Pos() > node.End() {
-				success = false
-				break
+		for _, spec := range node.Specs {
+			typ := spec.(*ast.TypeSpec)
+			name := typ.Name.String()
+			if name == srv.name {
+				obj := srv.info.Defs[typ.Name]
+				if obj != nil {
+					if service, ok := obj.Type().Underlying().(*types.Interface); ok {
+						for i := 0; i < service.NumExplicitMethods(); i++ {
+							rawMethod := service.ExplicitMethod(i)
+							srv.SetMethod(rawMethod)
+						}
+						srv.service = service
+						srv.commentText = strings.Trim(typ.Doc.Text(), LF)
+						fmt.Println(node.Doc.Text())
+					}
+				}
 			}
 		}
-	}
-
-	if success {
-		srv.commentText = strings.Trim(node.Doc.Text(), LF)
 	}
 	return
 }

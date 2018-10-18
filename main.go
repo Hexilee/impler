@@ -37,17 +37,24 @@ func main() {
 	}
 	cmap := ast.NewCommentMap(fset, file, file.Comments)
 	conf := types.Config{Importer: importer.Default()}
-	pkg, err := conf.Check(GoPkg, fset, []*ast.File{file}, nil)
+
+	info := &types.Info{
+		Types: make(map[ast.Expr]types.TypeAndValue),
+		Defs:  make(map[*ast.Ident]types.Object),
+		Uses:  make(map[*ast.Ident]types.Object),
+	}
+
+	_, err = conf.Check(GoPkg, fset, []*ast.File{file}, info)
 	if err != nil {
 		Log.Fatal(err.Error()) // type error
 	}
 
-	rawService, ok := pkg.Scope().Lookup(serviceName).Type().Underlying().(*types.Interface)
-	if !ok {
-		Log.Fatal(serviceName + " is not a interface")
-	}
+	//rawService, ok := pkg.Scope().Lookup(serviceName).Type().Underlying().(*types.Interface)
+	//if !ok {
+	//	Log.Fatal(serviceName + " is not a interface")
+	//}
 
-	service := impl.NewService(serviceName, rawService).InitComments(cmap)
+	service := impl.NewService(serviceName, nil, info).InitComments(cmap)
 	code, err := impl.Impl(service, GoPkg)
 	if err != nil {
 		Log.Fatal(err.Error())
