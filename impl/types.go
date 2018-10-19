@@ -1,12 +1,12 @@
 package impl
 
 import (
+	. "github.com/rady-io/http-service/log"
 	"go/ast"
 	"go/importer"
 	"go/parser"
 	"go/token"
 	"go/types"
-	"log"
 )
 
 const (
@@ -40,10 +40,13 @@ func GetType(name string) types.Type {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "types.go", Src, 0)
 	if err != nil {
-		log.Fatal(err)
+		Log.Fatal(err)
 	}
 
 	conf := types.Config{Importer: importer.Default()}
 	pkg, err := conf.Check("impler/types", fset, []*ast.File{file}, nil)
+	if err != nil {
+		Log.Fatal(err)
+	}
 	return pkg.Scope().Lookup(name).Type()
 }
